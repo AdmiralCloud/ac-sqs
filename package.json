@@ -1,0 +1,26 @@
+{
+  "name": "ac-sqs",
+  "author": "Mark Poepping (https://www.admiralcloud.com)",
+  "license": "MIT",
+  "repository": "admiralcloud/ac-sqs",
+  "version": "1.0.2",
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.321.1",
+    "@aws-sdk/client-sqs": "^3.321.1",
+    "@aws-sdk/credential-providers": "^3.321.1",
+    "lodash": "^4.17.21",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "ac-semantic-release": "^0.4.1",
+    "chai": "^4.3.7",
+    "eslint": "^8.39.0",
+    "mocha": "^10.x"
+  },
+  "scripts": {
+    "test": "mocha --reporter spec"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}
