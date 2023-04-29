@@ -1,6 +1,9 @@
 # AC SQS
 This tool is a wrapper for AWS SDK's SQS function. It includes handling of big SQS messages using S3.
 
+## Breaking changes - version 2
+This new class-based wrapper is not compatible with older versions. 
+
 # Usage
 
 ```
