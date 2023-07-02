@@ -39,6 +39,15 @@ class ACSQS {
     }
   }
 
+  async getAllLists() {
+    let response = []
+    for (const list of this.availableLists) {
+      const attr = await this.getQueueAttributes({ name: list?.name, attributes: ['QueueArn'] })
+      response.push({ name: list?.name, value: attr?.Attributes?.QueueArn })
+    }
+    return response
+  }
+
   async getQueueUrl({ name, fifo, localPrefix }) {
     let queueUrl = `https://sqs.${this.region}.amazonaws.com/${this.account}/` 
     if (localPrefix) queueUrl += `local_${localPrefix}_`
