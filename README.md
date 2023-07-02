@@ -120,6 +120,7 @@ Preparations you have to make before running the tests:
 + export the AWS account id using **export awsaccount=12345**
 + create a SQS list named "test_acsqs"
 + create a bucket and export the name using **export bucket=acsqs-test-bucket**
++ export the node test environment using **export NODE_ENV=test**
 
 **ATTENTION**: Tests may fail when checking the SQS length. This is a by-design failure:
 "ApproximateNumberOfMessages metrics may not achieve consistency until at least 1 minute after the producers stop sending messages."
