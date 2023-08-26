@@ -5,16 +5,16 @@
   "repository": "admiralcloud/ac-sqs",
   "version": "2.0.1",
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.363.0",
-    "@aws-sdk/client-sqs": "^3.363.0",
-    "@aws-sdk/credential-providers": "^3.363.0",
+    "@aws-sdk/client-s3": "^3.400.0",
+    "@aws-sdk/client-sqs": "^3.398.0",
+    "@aws-sdk/credential-providers": "^3.398.0",
     "lodash": "^4.17.21",
     "uuid": "^9.0.0"
   },
   "devDependencies": {
-    "ac-semantic-release": "^0.4.1",
-    "chai": "^4.3.7",
-    "eslint": "^8.44.0",
+    "ac-semantic-release": "^0.4.2",
+    "chai": "^4.3.8",
+    "eslint": "^8.48.0",
     "mocha": "^10.x"
   },
   "scripts": {
