@@ -131,6 +131,7 @@ class ACSQS {
     const command = new ReceiveMessageCommand(sqsParams)
     try {
       const result = await this.sqs.send(command)
+      if (!_.size(result.Messages)) return
       const messages = await Promise.all(result.Messages.map(async message => {
         if (message.Body.startsWith('s3:')) {
           const key = message.Body.replace('s3:', '')
