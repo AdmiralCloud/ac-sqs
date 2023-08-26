@@ -1,3 +1,18 @@
+<a name="2.0.2"></a>
+
+## [2.0.2](https://github.com/admiralcloud/ac-sqs/compare/v2.0.1..v2.0.2) (2023-08-26 14:18:17)
+
+
+### Bug Fix
+
+* **App:** Don't create an error mapping a non existing result when receiving messages | MP | [f24ac7d20edff29e8ded7f2eb8728910046ce62e](https://github.com/admiralcloud/ac-sqs/commit/f24ac7d20edff29e8ded7f2eb8728910046ce62e)    
+My commit description  
+Related issues: [admiralcloud/ac-sqs#1](https://github.com/admiralcloud/ac-sqs/issues/1) [admiralcloud/ac-api-server#340](https://github.com/admiralcloud/ac-api-server/issues/340)
+### Chores
+
+* **App:** Updated packages | MP | [818c035b3375f2222d1b316d64273e48286b6aaf](https://github.com/admiralcloud/ac-sqs/commit/818c035b3375f2222d1b316d64273e48286b6aaf)    
+Updated packages  
+Related issues: [admiralcloud/ac-sqs#1](https://github.com/admiralcloud/ac-sqs/issues/1) [admiralcloud/ac-api-server#340](https://github.com/admiralcloud/ac-api-server/issues/340)
 <a name="2.0.1"></a>
 
 ## [2.0.1](https://github.com/admiralcloud/ac-sqs/compare/v2.0.0..v2.0.1) (2023-07-02 13:28:31)
