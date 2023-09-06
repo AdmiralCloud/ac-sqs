@@ -1,3 +1,18 @@
+<a name="2.0.3"></a>
+
+## [2.0.3](https://github.com/admiralcloud/ac-sqs/compare/v2.0.2..v2.0.3) (2023-09-06 09:29:40)
+
+
+### Bug Fix
+
+* **App:** Allow suffix for lists | MP | [5b2395593896a83dd8bbd6a558e589c8d0a2f0c7](https://github.com/admiralcloud/ac-sqs/commit/5b2395593896a83dd8bbd6a558e589c8d0a2f0c7)    
+Allow suffix for lists  
+Related issues: [undefined/undefined#master](undefined/browse/master)
+### Chores
+
+* **App:** Updated packages | MP | [0a96ae8df4a46863bd8faeccdfde674b37338055](https://github.com/admiralcloud/ac-sqs/commit/0a96ae8df4a46863bd8faeccdfde674b37338055)    
+Updated packages  
+Related issues: [undefined/undefined#master](undefined/browse/master)
 <a name="2.0.2"></a>
 
 ## [2.0.2](https://github.com/admiralcloud/ac-sqs/compare/v2.0.1..v2.0.2) (2023-08-26 14:18:17)
