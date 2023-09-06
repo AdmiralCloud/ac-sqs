@@ -48,11 +48,12 @@ class ACSQS {
     return response
   }
 
-  async getQueueUrl({ name, fifo, localPrefix }) {
+  async getQueueUrl({ name, fifo, localPrefix, suffix }) {
     let queueUrl = `https://sqs.${this.region}.amazonaws.com/${this.account}/` 
     if (localPrefix) queueUrl += `local_${localPrefix}_`
     if (process.env['NODE_ENV'] === 'test') queueUrl += 'test_'
     queueUrl += name
+    if (suffix) queueUrl += suffix
     if (fifo) queueUrl += '.fifo'
     return queueUrl
   }
