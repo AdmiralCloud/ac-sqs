@@ -1,3 +1,13 @@
+<a name="2.0.4"></a>
+
+## [2.0.4](https://github.com/admiralcloud/ac-sqs/compare/v2.0.3..v2.0.4) (2024-06-05 15:17:57)
+
+
+### Bug Fix
+
+* **App:** Package updates | MP | [a6c6c7cec0385768446ef635b6605bac9dfc7d40](https://github.com/admiralcloud/ac-sqs/commit/a6c6c7cec0385768446ef635b6605bac9dfc7d40)    
+Package updates  
+Related issues: [admiralcloud/ac-sqs#1](https://github.com/admiralcloud/ac-sqs/issues/1) [admiralcloud/ac-api-server#340](https://github.com/admiralcloud/ac-api-server/issues/340)
 <a name="2.0.3"></a>
 
 ## [2.0.3](https://github.com/admiralcloud/ac-sqs/compare/v2.0.2..v2.0.3) (2023-09-06 09:29:40)
