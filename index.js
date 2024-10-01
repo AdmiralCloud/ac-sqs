@@ -8,7 +8,7 @@ const { S3Client, GetObjectCommand, PutObjectCommand, DeleteObjectsCommand } = r
 
 
 class ACSQS {
-  constructor({ region = 'eu-central-1', account, availableLists, profile = process.env['profile'], useS3 = { enabled: true, bucket: undefined }, messageThreshold = 250e3, debug, logger=console }) {
+  constructor({ region = 'eu-central-1', account, availableLists, profile = process.env['profile'], useS3 = { enabled: true, bucket: undefined }, messageThreshold = 250e3, debug, logger=console, throwError = false }) {
     const httpOptions = {
       keepAlive: true
     }
@@ -17,6 +17,7 @@ class ACSQS {
     this.account = account
     this.availableLists = availableLists
     this.logger = logger
+    this.throwError = throwError
 
     const awsConfig = {
       region,
@@ -74,6 +75,7 @@ class ACSQS {
     }
     catch(e) {
       this.logger.error('ACSQS | getQueueAttributes | %s | %s', name, e?.message)
+      if (this.throwError) throw e
     }
   }
 
@@ -114,6 +116,7 @@ class ACSQS {
     }
     catch(e) {
       this.logger.error('ACSQS | sendSQSMessage | %s | %s', name, e?.message)
+      if (this.throwError) throw e
     }
   }
 
@@ -151,6 +154,7 @@ class ACSQS {
     }
     catch(e) {
       this.logger.error('ACSQS | receiveSQSMessage | %s | %s', name, e?.message)
+      if (this.throwError) throw e
     }
   }
 
@@ -193,6 +197,7 @@ class ACSQS {
     }
     catch(e) {
       this.logger.error('ACSQS | deleteSQSMessage | %s | %s', name, e?.message)
+      if (this.throwError) throw e
     }
   }
 
