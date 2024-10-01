@@ -1,3 +1,18 @@
+<a name="2.0.5"></a>
+
+## [2.0.5](https://github.com/admiralcloud/ac-sqs/compare/v2.0.4..v2.0.5) (2024-10-01 13:09:45)
+
+
+### Bug Fix
+
+* **App:** Allow throwError option  | MP | [821713678f99d87ac239d8511b5cca78de5d1b0b](https://github.com/admiralcloud/ac-sqs/commit/821713678f99d87ac239d8511b5cca78de5d1b0b)    
+If true, errors are thrown instead of just logged  
+Related issues: [admiralcloud/ac-sqs#1](https://github.com/admiralcloud/ac-sqs/issues/1) [admiralcloud/ac-api-server#340](https://github.com/admiralcloud/ac-api-server/issues/340)
+### Chores
+
+* **App:** Updated packages | MP | [959ba2ed9847d20d16b5d50f568d7cabe9324d81](https://github.com/admiralcloud/ac-sqs/commit/959ba2ed9847d20d16b5d50f568d7cabe9324d81)    
+Updated packages  
+Related issues: [admiralcloud/ac-sqs#1](https://github.com/admiralcloud/ac-sqs/issues/1) [admiralcloud/ac-api-server#340](https://github.com/admiralcloud/ac-api-server/issues/340)
 <a name="2.0.4"></a>
 
 ## [2.0.4](https://github.com/admiralcloud/ac-sqs/compare/v2.0.3..v2.0.4) (2024-06-05 15:17:57)
