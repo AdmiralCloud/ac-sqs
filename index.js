@@ -40,10 +40,10 @@ class ACSQS {
     }
   }
 
-  async getAllLists() {
+  async getAllLists({ throwError = false } = {}) {
     let response = []
     for (const list of this.availableLists) {
-      const attr = await this.getQueueAttributes({ name: list?.name, attributes: ['QueueArn'] })
+      const attr = await this.getQueueAttributes({ name: list?.name, attributes: ['QueueArn'], throwError })
       response.push({ name: list?.name, value: attr?.Attributes?.QueueArn })
     }
     return response
@@ -59,7 +59,7 @@ class ACSQS {
     return queueUrl
   }
 
-  async getQueueAttributes({ name, attributes = ['ApproximateNumberOfMessages'] }) {
+  async getQueueAttributes({ name, attributes = ['ApproximateNumberOfMessages'], throwError }) {
     const config = _.find(this.availableLists, { name })
     if (!config) {
       this.logger.error('ACSQS | getQueueAttributes | configurationMissing | %s', name)
@@ -75,12 +75,12 @@ class ACSQS {
     }
     catch(e) {
       this.logger.error('ACSQS | getQueueAttributes | %s | %s', name, e?.message)
-      if (this.throwError) throw e
+      if (this.throwError || throwError) throw e
     }
   }
 
 
-  async sendSQSMessage({ name, message, messageGroupId, deDuplicationId, delay }) {
+  async sendSQSMessage({ name, message, messageGroupId, deDuplicationId, delay, throwError }) {
     const config = _.find(this.availableLists, { name })
     if (!config) {
       this.logger.error('AWS | sendSQSMessage | configurationMissing | %s', name)
@@ -116,11 +116,11 @@ class ACSQS {
     }
     catch(e) {
       this.logger.error('ACSQS | sendSQSMessage | %s | %s', name, e?.message)
-      if (this.throwError) throw e
+      if (this.throwError || throwError) throw e
     }
   }
 
-  async receiveSQSMessages({ name }) {
+  async receiveSQSMessages({ name, throwError }) {
     const config = _.find(this.availableLists, { name })
     if (!config) {
       this.logger.error('AWS | receiveSQSMessage | configurationMissing | %s', name)
@@ -154,12 +154,12 @@ class ACSQS {
     }
     catch(e) {
       this.logger.error('ACSQS | receiveSQSMessage | %s | %s', name, e?.message)
-      if (this.throwError) throw e
+      if (this.throwError || throwError) throw e
     }
   }
 
   // items -> [{ Id, ReceiptHandle }]
-  async deleteSQSMessages({ name, items }) {
+  async deleteSQSMessages({ name, items, throwError }) {
     const config = _.find(this.availableLists, { name })
     if (!config) {
       this.logger.error('AWS | deleteSQSMessage | configurationMissing | %s', name)
@@ -197,7 +197,7 @@ class ACSQS {
     }
     catch(e) {
       this.logger.error('ACSQS | deleteSQSMessage | %s | %s', name, e?.message)
-      if (this.throwError) throw e
+      if (this.throwError || throwError) throw e
     }
   }
 
