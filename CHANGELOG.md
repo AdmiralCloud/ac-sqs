@@ -1,3 +1,13 @@
+<a name="2.0.6"></a>
+
+## [2.0.6](https://github.com/admiralcloud/ac-sqs/compare/v2.0.5..v2.0.6) (2024-10-01 13:15:15)
+
+
+### Bug Fix
+
+* **App:** Allow throwError option on function level | MP | [be838a35c2f7220e594aed81f831bf2ca2a1b440](https://github.com/admiralcloud/ac-sqs/commit/be838a35c2f7220e594aed81f831bf2ca2a1b440)    
+In addition to set it globally, you can now set throwError on function level  
+Related issues: [/issues#undefined](https://github.com//issues/undefined)
 <a name="2.0.5"></a>
 
 ## [2.0.5](https://github.com/admiralcloud/ac-sqs/compare/v2.0.4..v2.0.5) (2024-10-01 13:09:45)
