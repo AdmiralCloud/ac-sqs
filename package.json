@@ -13,9 +13,9 @@
   },
   "devDependencies": {
     "ac-semantic-release": "^0.4.3",
-    "chai": "^4.5.0",
+    "chai": "^5.1.1",
     "eslint": "^9.11.1",
-    "mocha": "^10.x"
+    "mocha": "^10.7.3"
   },
   "scripts": {
     "test": "mocha --reporter spec"
