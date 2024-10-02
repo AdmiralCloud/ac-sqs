@@ -1,3 +1,24 @@
+<a name="2.0.7"></a>
+
+## [2.0.7](https://github.com/admiralcloud/ac-sqs/compare/v2.0.6..v2.0.7) (2024-10-02 04:32:44)
+
+
+### Bug Fix
+
+* **App:** Added debug option | MP | [4ca1e0155758e98874b81a11e4c2ed491d1f1430](https://github.com/admiralcloud/ac-sqs/commit/4ca1e0155758e98874b81a11e4c2ed491d1f1430)    
+If list is configured with debug=true, all SQS operations are logged  
+Related issues: [undefined/undefined#master](undefined/browse/master)
+### Chores
+
+* **App:** Package fix | MP | [f5451d1fa4573b69cc523b5a71bee7a8f35d2a38](https://github.com/admiralcloud/ac-sqs/commit/f5451d1fa4573b69cc523b5a71bee7a8f35d2a38)    
+Package fix  
+Related issues: [admiralcloud/ac-sqs#1](https://github.com/admiralcloud/ac-sqs/issues/1) [admiralcloud/ac-api-server#340](https://github.com/admiralcloud/ac-api-server/issues/340)
+* **App:** Package fix | MP | [8f988ed8010b990d7fde443d49c14718f6c5c6f9](https://github.com/admiralcloud/ac-sqs/commit/8f988ed8010b990d7fde443d49c14718f6c5c6f9)    
+Package fix for devDependecies  
+Related issues: [admiralcloud/ac-sqs#1](https://github.com/admiralcloud/ac-sqs/issues/1) [admiralcloud/ac-api-server#340](https://github.com/admiralcloud/ac-api-server/issues/340)
+* **App:** Updated packages | MP | [6829c6438bf5352d19e9573bc7f1195218aedd6c](https://github.com/admiralcloud/ac-sqs/commit/6829c6438bf5352d19e9573bc7f1195218aedd6c)    
+Updated packages  
+Related issues: [undefined/undefined#master](undefined/browse/master)
 <a name="2.0.6"></a>
 
 ## [2.0.6](https://github.com/admiralcloud/ac-sqs/compare/v2.0.5..v2.0.6) (2024-10-01 13:15:15)
