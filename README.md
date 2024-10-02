@@ -38,6 +38,8 @@ Array of AWS SQS lists that will be used by this function. Every item in the lis
 + waitTime -> see AWS SQS for details, defaults to 20
 + fifo -> set to true, if this is a fifo list
 + localPrefix -> set your local prefix. See below for more info
++ debug -> if true, all SQS payloads for that list will be logged (level debug)
++ throwError -> if true, error will throw otherwise they will only be logged (default)
 
 Name should be the plain name of the list. Parameters like fifo or test (in test environment) or localPrefixes (for local development) should not be part of the list name. LocalPrefix can be used if multiple developers work on your project and you want to make sure they all work on their own SQS list without changing the name of all SQS lists in your main project.
 

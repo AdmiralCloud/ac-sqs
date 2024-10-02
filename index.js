@@ -69,6 +69,7 @@ class ACSQS {
       QueueUrl: await this.getQueueUrl(config),
       AttributeNames: attributes
     }
+    if (config.debug) this.logger.debug('ACSQS | getQueueAttributes | Payload %j', sqsParams)
     const command = new GetQueueAttributesCommand(sqsParams)
     try {
       return await this.sqs.send(command)
@@ -109,6 +110,7 @@ class ACSQS {
     if (deDuplicationId) _.set(sqsParams, 'MessageDeduplicationId', deDuplicationId)
     if (delay) _.set(sqsParams, 'DelaySeconds', delay)
 
+    if (config.debug) this.logger.debug('ACSQS | sendSQSMessage | Payload %j', sqsParams)
     const command = new SendMessageCommand(sqsParams)
     try {
       const response = await this.sqs.send(command)
@@ -132,6 +134,7 @@ class ACSQS {
       VisibilityTimeout: _.get(config, 'visibilityTimeout', 30),
       WaitTimeSeconds: _.get(config, 'waitTime', 20)
     }
+    if (config.debug) this.logger.debug('ACSQS | receiveSQSMessages | Payload %j', sqsParams)
     const command = new ReceiveMessageCommand(sqsParams)
     try {
       const result = await this.sqs.send(command)
@@ -179,6 +182,7 @@ class ACSQS {
       QueueUrl: await this.getQueueUrl(config),
       Entries: entries
     }
+    if (config.debug) this.logger.debug('ACSQS | deleteSQSMessages | Payload %j', sqsParams)
     const command = new DeleteMessageBatchCommand(sqsParams)
     try {
       const response = await this.sqs.send(command)
