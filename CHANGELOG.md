@@ -1,3 +1,13 @@
+<a name="2.0.8"></a>
+
+## [2.0.8](https://github.com/admiralcloud/ac-sqs/compare/v2.0.7..v2.0.8) (2024-10-16 13:20:21)
+
+
+### Bug Fix
+
+* **App:** Package updates | MP | [b9ceec9717166b22851618a22292ac5784d9d849](https://github.com/admiralcloud/ac-sqs/commit/b9ceec9717166b22851618a22292ac5784d9d849)    
+Package updates  
+Related issues: [undefined/undefined#master](undefined/browse/master)
 <a name="2.0.7"></a>
 
 ## [2.0.7](https://github.com/admiralcloud/ac-sqs/compare/v2.0.6..v2.0.7) (2024-10-02 04:32:44)
