@@ -1,3 +1,20 @@
+<a name="3.0.0"></a>
+ 
+# [3.0.0](https://github.com/admiralcloud/ac-sqs/compare/v2.0.8..v3.0.0) (2024-10-17 15:51:06)
+
+
+### Bug Fix
+
+* **App:** Do not set AWS profile | MP | [04b4e3c583844d998d3ace44d60456786a0129f9](https://github.com/admiralcloud/ac-sqs/commit/04b4e3c583844d998d3ace44d60456786a0129f9)    
+Use profile from EC2 role or AWS_PROFILE  
+Related issues: [master/issues#undefined](https://github.com/master/issues/undefined)
+### Chores
+
+* **App:** Updated packages | MP | [40b661a75293090f84c9fc93b38469e09b9de3a1](https://github.com/admiralcloud/ac-sqs/commit/40b661a75293090f84c9fc93b38469e09b9de3a1)    
+Updated packages  
+Related issues: [admiralcloud/ac-sqs#1](https://github.com/admiralcloud/ac-sqs/issues/1) [admiralcloud/ac-api-server#340](https://github.com/admiralcloud/ac-api-server/issues/340)
+## BREAKING CHANGES
+* **App:** Use profile from EC2 role or AWS_PROFILE. NO more support for profile during init.
 <a name="2.0.8"></a>
 
 ## [2.0.8](https://github.com/admiralcloud/ac-sqs/compare/v2.0.7..v2.0.8) (2024-10-16 13:20:21)
