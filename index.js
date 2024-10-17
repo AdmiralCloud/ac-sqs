@@ -1,18 +1,12 @@
 const _ = require('lodash')
 const { v4: uuidV4 } = require('uuid')
-const https = require('https')
 
-const { fromNodeProviderChain } = require('@aws-sdk/credential-providers')
 const { SQSClient, SendMessageCommand, ReceiveMessageCommand, DeleteMessageBatchCommand, GetQueueAttributesCommand } = require('@aws-sdk/client-sqs')
 const { S3Client, GetObjectCommand, PutObjectCommand, DeleteObjectsCommand } = require("@aws-sdk/client-s3")
 
 
 class ACSQS {
-  constructor({ region = 'eu-central-1', account, availableLists, profile = process.env['profile'], useS3 = { enabled: true, bucket: undefined }, messageThreshold = 250e3, debug, logger=console, throwError = false }) {
-    const httpOptions = {
-      keepAlive: true
-    }
-
+  constructor({ region = 'eu-central-1', account, availableLists, useS3 = { enabled: true, bucket: undefined }, messageThreshold = 250e3, debug, logger=console, throwError = false }) {
     this.region = region
     this.account = account
     this.availableLists = availableLists
@@ -21,13 +15,6 @@ class ACSQS {
 
     const awsConfig = {
       region,
-      credentials: fromNodeProviderChain({ profile, ignoreCache: true }),
-      httpOptions: {
-        agent: new https.Agent(httpOptions)
-      }
-    }
-    if (debug && profile) {
-      this.logger.log('ACSQS | Using AWS profile | %s', profile)
     }
     this.sqs = new SQSClient(awsConfig)
 

@@ -10,7 +10,6 @@ This new class-based wrapper is not compatible with older versions.
 yarn add ac-sqs
 
 const acsqs = new ACSQS({
-  profile: 'development', // Optional AWS profile, see below
   account: '123456789', // AWS account id
   availableLists: [{
     name: 'listName'
@@ -45,9 +44,6 @@ Name should be the plain name of the list. Parameters like fifo or test (in test
 
 Example for a FIFO list:
 Let the name be "mylist". This will automatically create "test_mylist" in test environment (NODE_ENV=test) and "local_LOCALPREFIX_mylist" if you set localPrefix.
-
-**Profile [optional]**
-By default the first AWS credentials in ~/.aws/credentials will be used.  You can also export an environment variable ***profile*** or send a named AWS profile.
 
 **useS3 [optional]**
 AWS SQS only allows a certain message size (262kb at the time of the documentation). To process messages with a bigger payload, the actual message content will be stored in a file on AWS S3. The feature is enabled by default and you must make sure to set a bucket.
@@ -118,7 +114,7 @@ You can run tests using **yarn run test**.
 
 Preparations you have to make before running the tests:
 
-+ export the AWS profile to use for tests (if it is not your default profile) using  **export profile=development**
++ export the AWS profile to use for tests (if it is not your default profile) using  **export AWS_PROFILE=development**
 + export the AWS account id using **export awsaccount=12345**
 + create a SQS list named "test_acsqs"
 + create a bucket and export the name using **export bucket=acsqs-test-bucket**
