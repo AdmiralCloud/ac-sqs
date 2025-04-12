@@ -1,3 +1,22 @@
+ 
+# [3.1.0](https://github.com/admiralcloud/ac-sqs/compare/v3.0.0..v3.1.0) (2025-04-12 08:11:38)
+
+
+### Feature
+
+* **App:** Add visibilityTimeout management | MP | [ccdd4d0230fc98a5e1aa8531a9939ef2457b614a](https://github.com/admiralcloud/ac-sqs/commit/ccdd4d0230fc98a5e1aa8531a9939ef2457b614a)    
+It is now possible to automatically extend visibility for messages. Just set visibilityTimeout in list config  
+Related issues: [admiralcloud/ac-sqs#1](https://github.com/admiralcloud/ac-sqs/issues/1) [admiralcloud/ac-api-server#340](https://github.com/admiralcloud/ac-api-server/issues/340)
+### Documentation
+
+* **App:** Added visibilityTimeout management  | MP | [4c6e916b0056c894dcac5cb58fa48166de769de4](https://github.com/admiralcloud/ac-sqs/commit/4c6e916b0056c894dcac5cb58fa48166de769de4)    
+Added visibilityTimeout management  
+Related issues: [admiralcloud/ac-sqs#1](https://github.com/admiralcloud/ac-sqs/issues/1) [admiralcloud/ac-api-server#340](https://github.com/admiralcloud/ac-api-server/issues/340)
+### Chores
+
+* **App:** Updated packages | MP | [c2f533d3bd7bb0d9917d9815e46ef6e8ab5c79d2](https://github.com/admiralcloud/ac-sqs/commit/c2f533d3bd7bb0d9917d9815e46ef6e8ab5c79d2)    
+Updated packages  
+Related issues: [admiralcloud/ac-sqs#1](https://github.com/admiralcloud/ac-sqs/issues/1) [admiralcloud/ac-api-server#340](https://github.com/admiralcloud/ac-api-server/issues/340)
 <a name="3.0.0"></a>
  
 # [3.0.0](https://github.com/admiralcloud/ac-sqs/compare/v2.0.8..v3.0.0) (2024-10-17 15:51:06)
