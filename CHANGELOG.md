@@ -1,3 +1,12 @@
+
+## [3.1.1](https://github.com/admiralcloud/ac-sqs/compare/v3.1.0..v3.1.1) (2025-04-12 09:17:43)
+
+
+### Bug Fix
+
+* **App:** Allow MessageId or Id for deletion requests | MP | [914e624a44c045771e3518eb94cb8dc6b8272bd4](https://github.com/admiralcloud/ac-sqs/commit/914e624a44c045771e3518eb94cb8dc6b8272bd4)    
+Allow MessageId or Id for deletion requests  
+Related issues:
  
 # [3.1.0](https://github.com/admiralcloud/ac-sqs/compare/v3.0.0..v3.1.0) (2025-04-12 08:11:38)
 
