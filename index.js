@@ -245,11 +245,11 @@ class ACSQS {
     const entries = []
     const s3keys = []
     for (const item of items) {
-      entries.push({ Id: item.Id, ReceiptHandle: item.ReceiptHandle })
+      const messageId = item.MessageId || item.Id
+      entries.push({ Id: messageId, ReceiptHandle: item.ReceiptHandle })
       if (item.s3key) {
         s3keys.push({ Key: item.s3key })
       }
-      const messageId = item.Id
       if (this.visibilityTimer[messageId]) {
         this.deleteVisibilityTimer({ messageId })
       }
