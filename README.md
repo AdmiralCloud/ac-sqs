@@ -33,7 +33,7 @@ The ***account*** id of your AWS account. This is required
 Array of AWS SQS lists that will be used by this function. Every item in the list must be an object with the following properties:
 + name -> the name of the list in AWS SQS. See below for more info.
 + batchSize -> number of messages to fetch per call. Max 10, defaults to 1
-+ visibilityTimeout -> see AWS SQS for details, defaults to 30
++ visibilityTimeout -> see AWS SQS for details, defaults to 30. If set, visibilityTimeout management is activated
 + waitTime -> see AWS SQS for details, defaults to 20
 + fifo -> set to true, if this is a fifo list
 + localPrefix -> set your local prefix. See below for more info
@@ -54,6 +54,9 @@ useS3: {
   bucket: 'ac-sqs-message'
 }
 ```
+
+**Visibility Timeout Management**
+If you set list config parameter visibilityTimeout, the automatic visibilityTimeout management will be activated. It will make sure that visibilityTimeout for messages is automatically extended.
 
 Make sure your function can read, write and delete messages in the bucket.
 
