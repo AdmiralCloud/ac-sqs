@@ -1,7 +1,7 @@
 const _ = require('lodash')
 const { v4: uuidV4 } = require('uuid')
 
-const { SQSClient, SendMessageCommand, ReceiveMessageCommand, DeleteMessageBatchCommand, GetQueueAttributesCommand } = require('@aws-sdk/client-sqs')
+const { SQSClient, SendMessageCommand, ReceiveMessageCommand, DeleteMessageBatchCommand, GetQueueAttributesCommand, ChangeMessageVisibilityCommand } = require('@aws-sdk/client-sqs')
 const { S3Client, GetObjectCommand, PutObjectCommand, DeleteObjectsCommand } = require("@aws-sdk/client-s3")
 
 
@@ -12,6 +12,7 @@ class ACSQS {
     this.availableLists = availableLists
     this.logger = logger
     this.throwError = throwError
+    this.visibilityTimer = {}
 
     const awsConfig = {
       region,
@@ -109,13 +110,71 @@ class ACSQS {
     }
   }
 
+  async extendVisibility({ name, message }) {
+    const config = _.find(this.availableLists, { name })
+    if (!config) {
+      this.logger.error('AWS | extendVisibility | configurationMissing | %s', name)
+      throw new Error('configurationForListMissing')
+    }
+
+    const visibilityTimeout = _.get(config, 'visibilityTimeout', 15)
+    const maxVisibilityExtensions = _.get(config, 'maxVisibilityExtensions', 12) // max number of times the extension can me made (12 x 15s = 3min)
+    
+    const { MessageId: messageId, ReceiptHandle: receiptHandle } = message
+
+     // Check if we've reached maximum extensions
+    if (this.visibilityTimer[messageId] && this.visibilityTimer[messageId].visibilityExtensionCount >= maxVisibilityExtensions) {
+      this.logger.warn('ACSQS | extendVisibility | %s | M %s | Max extensions reached | %s | %j', name, messageId, maxVisibilityExtensions, message)
+      this.deleteVisibilityTimer({ messageId })
+      return
+    }
+    
+    // Track extension count
+    if (this.visibilityTimer[messageId]) {
+      this.visibilityTimer[messageId].visibilityExtensionCount++
+    }
+    
+    const sqsParams = {
+      QueueUrl: await this.getQueueUrl(config),
+      ReceiptHandle: receiptHandle,
+      VisibilityTimeout: visibilityTimeout
+    }
+    const command = new ChangeMessageVisibilityCommand(sqsParams)
+    try {
+      const response = await this.sqs.send(command)
+      if (config.debug) {
+        const visibilityExtensionCount = this.visibilityTimer[messageId] ? this.visibilityTimer[messageId].visibilityExtensionCount : 0
+        this.logger.debug('ACSQS | extendVisibility | %s |  M %s | %ss | %s | %j', name, messageId, visibilityTimeout, visibilityExtensionCount, message)
+      }
+
+      return response
+    }
+    catch(e) {
+      this.logger.error('ACSQS | extendVisibility | %s | %s', name, e?.message)
+      this.deleteVisibilityTimer({ messageId })
+      if (this.throwError || throwError) throw e
+    }
+  }
+
+  deleteVisibilityTimer({ messageId }) {
+    if (this.visibilityTimer[messageId]) {
+      clearTimeout(this.visibilityTimer[messageId].timer)
+      const self = this
+      setTimeout(() => {
+        delete self.visibilityTimer[messageId]
+      }, 1000)
+    }
+  }
+
   async receiveSQSMessages({ name, throwError }) {
     const config = _.find(this.availableLists, { name })
     if (!config) {
-      this.logger.error('AWS | receiveSQSMessage | configurationMissing | %s', name)
+      this.logger.error('ACSQS | receiveSQSMessage | configurationMissing | %s', name)
       throw new Error('configurationForListMissing')
     }
-    let sqsParams = {
+    const visibilityTimeout = _.get(config, 'visibilityTimeout') // if set, will activate visibilityTimeout management
+  
+    const sqsParams = {
       QueueUrl: await this.getQueueUrl(config),
       MaxNumberOfMessages: _.get(config, 'batchSize', 10),
       VisibilityTimeout: _.get(config, 'visibilityTimeout', 30),
@@ -126,7 +185,9 @@ class ACSQS {
     try {
       const result = await this.sqs.send(command)
       if (!_.size(result.Messages)) return
-      const messages = await Promise.all(result.Messages.map(async message => {
+      
+      // Benutze Arrow-Funktion, um `this` beizubehalten
+      const messages = await Promise.all(result.Messages.map(async (message) => {
         if (message.Body.startsWith('s3:')) {
           const key = message.Body.replace('s3:', '')
           try {
@@ -135,9 +196,29 @@ class ACSQS {
             message.s3key = key
           }
           catch(e) {
-            this.logger.error('AWS | receiveSQSMessages | s3KeyInvalid | %s', name, key)         
+            this.logger.error('ACSQS | receiveSQSMessages | s3KeyInvalid | %s', name, key)         
           }
         }
+  
+        if (visibilityTimeout > 0) {
+          // start visibility timer that automatically extends visibility of the message if required
+          const { MessageId: messageId } = message
+          const timeoutMs = Math.floor(visibilityTimeout * 0.8 * 1000)
+          const self = this // `this` als lokale Variable speichern
+          
+          this.visibilityTimer[messageId] = {
+            // Arrow-Funktion für setInterval damit `this` erhalten bleibt,
+            // oder verwende die lokale Variable `self`
+            timer: setInterval(() => {
+              this.extendVisibility({ name, message })
+                .catch(e => {
+                  this.logger.error('ACSQS | AutoExtendVisibility | Failed %s', e.message)
+                })
+            }, timeoutMs),
+            visibilityExtensionCount: 0
+          }
+        }
+  
         return message
       }))
       return messages
@@ -156,6 +237,11 @@ class ACSQS {
       throw new Error('configurationForListMissing')
     }
 
+    if (!_.size(items)) {
+      this.logger.error('AWS | deleteSQSMessage | %s | noItemsToDelete', name)
+      return
+    }
+
     const entries = []
     const s3keys = []
     for (const item of items) {
@@ -163,7 +249,12 @@ class ACSQS {
       if (item.s3key) {
         s3keys.push({ Key: item.s3key })
       }
+      const messageId = item.Id
+      if (this.visibilityTimer[messageId]) {
+        this.deleteVisibilityTimer({ messageId })
+      }
     }
+
 
     let sqsParams = {
       QueueUrl: await this.getQueueUrl(config),
