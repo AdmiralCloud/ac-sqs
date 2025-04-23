@@ -11,10 +11,10 @@
     "uuid": "^11.1.0"
   },
   "devDependencies": {
-    "ac-semantic-release": "^0.4.5",
+    "ac-semantic-release": "^0.4.6",
     "chai": "^4.5.0",
-    "eslint": "^9.24.0",
-    "mocha": "^11.1.0"
+    "eslint": "^9.25.1",
+    "mocha": "^11.2.2"
   },
   "scripts": {
     "test": "mocha --reporter spec"
@@ -24,5 +24,6 @@
   },
   "resolutions": {
     "mocha/chokidar/braces": "^3.0.3"
-  }
+  },
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }
