@@ -110,7 +110,7 @@ class ACSQS {
     }
   }
 
-  async extendVisibility({ name, message }) {
+  async extendVisibility({ name, message, throwError }) {
     const config = _.find(this.availableLists, { name })
     if (!config) {
       this.logger.error('AWS | extendVisibility | configurationMissing | %s', name)
