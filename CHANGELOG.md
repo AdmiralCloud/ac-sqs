@@ -1,4 +1,18 @@
 
+## [3.1.2](https://github.com/admiralcloud/ac-sqs/compare/v3.1.1..v3.1.2) (2025-04-23 07:40:43)
+
+
+### Bug Fix
+
+* **App:** Typo fix | MP | [b489342c092aae0b00691c28c46bed733a4d4823](https://github.com/admiralcloud/ac-sqs/commit/b489342c092aae0b00691c28c46bed733a4d4823)    
+Fixed missing variable  
+Related issues:
+### Chores
+
+* **App:** Updated packages | MP | [b031aaae6dc266584668577c008e4fd22254fc98](https://github.com/admiralcloud/ac-sqs/commit/b031aaae6dc266584668577c008e4fd22254fc98)    
+Updated packages  
+Related issues:
+
 ## [3.1.1](https://github.com/admiralcloud/ac-sqs/compare/v3.1.0..v3.1.1) (2025-04-12 09:17:43)
 
 
