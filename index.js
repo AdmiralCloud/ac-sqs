@@ -1,7 +1,7 @@
 const _ = require('lodash')
 const { v4: uuidV4 } = require('uuid')
 
-const { SQSClient, SendMessageCommand, ReceiveMessageCommand, DeleteMessageBatchCommand, GetQueueAttributesCommand, ChangeMessageVisibilityCommand } = require('@aws-sdk/client-sqs')
+const { SQSClient, SendMessageCommand, SendMessageBatchCommand, ReceiveMessageCommand, DeleteMessageBatchCommand, GetQueueAttributesCommand, ChangeMessageVisibilityCommand } = require('@aws-sdk/client-sqs')
 const { S3Client, GetObjectCommand, PutObjectCommand, DeleteObjectsCommand } = require("@aws-sdk/client-s3")
 
 
@@ -69,7 +69,7 @@ class ACSQS {
   }
 
 
-  async sendSQSMessage({ name, message, messageGroupId, deDuplicationId, delay, throwError }) {
+  async sendSQSMessage({ name, message, messageGroupId, deDuplicationId, delay, throwError, debug }) {
     const config = _.find(this.availableLists, { name })
     if (!config) {
       this.logger.error('AWS | sendSQSMessage | configurationMissing | %s', name)
@@ -98,7 +98,7 @@ class ACSQS {
     if (deDuplicationId) _.set(sqsParams, 'MessageDeduplicationId', deDuplicationId)
     if (delay) _.set(sqsParams, 'DelaySeconds', delay)
 
-    if (config.debug) this.logger.debug('ACSQS | sendSQSMessage | Payload %j', sqsParams)
+    if (debug || config.debug) this.logger.debug('ACSQS | sendSQSMessage | Payload %j', sqsParams)
     const command = new SendMessageCommand(sqsParams)
     try {
       const response = await this.sqs.send(command)
@@ -106,6 +106,61 @@ class ACSQS {
     }
     catch(e) {
       this.logger.error('ACSQS | sendSQSMessage | %s | %s', name, e?.message)
+      if (this.throwError || throwError) throw e
+    }
+  }
+
+  async sendSQSMessageBatch({ name, messages, messageGroupId, deDuplicationId, delay, throwError, debug }) {
+    const config = _.find(this.availableLists, { name })
+    if (!config) {
+      this.logger.error('AWS | sendSQSMessageBatch | configurationMissing | %s', name)
+      throw new Error('configurationForListMissing')
+    }
+  
+    const processedMessages = await Promise.all(
+      messages.map(async (message) => {
+        let messageBody = message
+        if (this.useS3 && message.length > this.messageThreshold) {
+          // store message in S3
+          const key = uuidV4()
+          const input = {
+            Bucket: this.bucket,
+            Key: key,
+            ContentType: 'text/plain',
+            Body: Buffer.from(message, 'utf-8')
+          }
+          const command = new PutObjectCommand(input)
+          await this.s3.send(command)
+          messageBody = `s3:${key}`
+        }
+        return messageBody
+      })
+    )
+  
+    const entries = processedMessages.map((messageBody, index) => {
+      const item = {
+        Id: String(index),
+        MessageBody: messageBody
+      }
+      if (messageGroupId) item.MessageGroupId = messageGroupId
+      if (deDuplicationId) item.MessageDeduplicationId = `${deDuplicationId}-${index}`
+      if (delay) item.DelaySeconds = delay
+      return item
+    })
+  
+    const sqsParams = {
+      QueueUrl: await this.getQueueUrl(config),
+      Entries: entries
+    }
+    if (debug || config.debug) this.logger.error('ACSQS | sendSQSMessageBatch | Payload %j', sqsParams)
+    
+    const command = new SendMessageBatchCommand(sqsParams)
+    try {
+      const response = await this.sqs.send(command)
+      return response
+    }
+    catch(e) {
+      this.logger.error('ACSQS | sendSQSMessageBatch | %s | %s', name, e?.message)
       if (this.throwError || throwError) throw e
     }
   }
@@ -166,7 +221,7 @@ class ACSQS {
     }
   }
 
-  async receiveSQSMessages({ name, throwError }) {
+  async receiveSQSMessages({ name, throwError, debug }) {
     const config = _.find(this.availableLists, { name })
     if (!config) {
       this.logger.error('ACSQS | receiveSQSMessage | configurationMissing | %s', name)
@@ -180,7 +235,7 @@ class ACSQS {
       VisibilityTimeout: _.get(config, 'visibilityTimeout', 30),
       WaitTimeSeconds: _.get(config, 'waitTime', 20)
     }
-    if (config.debug) this.logger.debug('ACSQS | receiveSQSMessages | Payload %j', sqsParams)
+    if (debug || config.debug) this.logger.debug('ACSQS | receiveSQSMessages | Payload %j', sqsParams)
     const command = new ReceiveMessageCommand(sqsParams)
     try {
       const result = await this.sqs.send(command)
@@ -230,7 +285,7 @@ class ACSQS {
   }
 
   // items -> [{ Id, ReceiptHandle }]
-  async deleteSQSMessages({ name, items, throwError }) {
+  async deleteSQSMessages({ name, items, throwError, debug }) {
     const config = _.find(this.availableLists, { name })
     if (!config) {
       this.logger.error('AWS | deleteSQSMessage | configurationMissing | %s', name)
@@ -260,7 +315,7 @@ class ACSQS {
       QueueUrl: await this.getQueueUrl(config),
       Entries: entries
     }
-    if (config.debug) this.logger.debug('ACSQS | deleteSQSMessages | Payload %j', sqsParams)
+    if (debug || config.debug) this.logger.debug('ACSQS | deleteSQSMessages | Payload %j', sqsParams)
     const command = new DeleteMessageBatchCommand(sqsParams)
     try {
       const response = await this.sqs.send(command)
