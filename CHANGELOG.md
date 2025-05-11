@@ -1,3 +1,17 @@
+ 
+# [3.2.0](https://github.com/admiralcloud/ac-sqs/compare/v3.1.2..v3.2.0) (2025-05-11 11:56:57)
+
+
+### Feature
+
+* **App:** Add sendMessageBatch function | MP | [996482f316a4220d6486df6e83a19b9e63a832f0](https://github.com/admiralcloud/ac-sqs/commit/996482f316a4220d6486df6e83a19b9e63a832f0)    
+Add sendMessageBatch function  
+Related issues: [admiralcloud/ac-sqs#1](https://github.com/admiralcloud/ac-sqs/issues/1) [admiralcloud/ac-api-server#340](https://github.com/admiralcloud/ac-api-server/issues/340)
+### Chores
+
+* **App:** Updated packages | MP | [792e1b3ec19ee222242c07a3db7694a1f79c223f](https://github.com/admiralcloud/ac-sqs/commit/792e1b3ec19ee222242c07a3db7694a1f79c223f)    
+Updated packages  
+Related issues: [admiralcloud/ac-sqs#1](https://github.com/admiralcloud/ac-sqs/issues/1) [admiralcloud/ac-api-server#340](https://github.com/admiralcloud/ac-api-server/issues/340)
 
 ## [3.1.2](https://github.com/admiralcloud/ac-sqs/compare/v3.1.1..v3.1.2) (2025-04-23 07:40:43)
 
