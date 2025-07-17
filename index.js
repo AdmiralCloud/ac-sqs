@@ -1,18 +1,23 @@
 const _ = require('lodash')
 const { v4: uuidV4 } = require('uuid')
+const { setTimeout: sleep } = require('timers/promises')
 
-const { SQSClient, SendMessageCommand, SendMessageBatchCommand, ReceiveMessageCommand, DeleteMessageBatchCommand, GetQueueAttributesCommand, ChangeMessageVisibilityCommand } = require('@aws-sdk/client-sqs')
+const { SQSClient, SendMessageCommand, SendMessageBatchCommand, ReceiveMessageCommand, DeleteMessageBatchCommand, GetQueueAttributesCommand, ChangeMessageVisibilityBatchCommand } = require('@aws-sdk/client-sqs')
 const { S3Client, GetObjectCommand, PutObjectCommand, DeleteObjectsCommand } = require("@aws-sdk/client-s3")
 
-
 class ACSQS {
-  constructor({ region = 'eu-central-1', account, availableLists, useS3 = { enabled: true, bucket: undefined }, messageThreshold = 250e3, debug, logger=console, throwError = false }) {
+  constructor({ region = 'eu-central-1', account, availableLists, useS3 = { enabled: true, bucket: undefined }, messageThreshold = 250e3, debug, logger = console, throwError = false, maxConcurrentMessages = 1000 }) {
     this.region = region
     this.account = account
     this.availableLists = availableLists
     this.logger = logger
     this.throwError = throwError
-    this.visibilityTimer = {}
+    this.maxConcurrentMessages = maxConcurrentMessages
+    
+    // Improved visibility management
+    this.visibilityManagement = new Map()
+    this.batchExtendTimer = null
+    this.batchExtendInterval = 5000 // Batch extend every 5 seconds
 
     const awsConfig = {
       region,
@@ -26,8 +31,198 @@ class ACSQS {
       this.bucket = _.get(useS3, 'bucket')
       this.s3 = new S3Client(awsConfig)
     }
+
+    // Start batch extend timer
+    this.startBatchExtendTimer()
   }
 
+  startBatchExtendTimer() {
+    if (this.batchExtendTimer) return
+    
+    this.batchExtendTimer = setInterval(() => {
+      this.processBatchExtensions()
+    }, this.batchExtendInterval)
+  }
+
+  stopBatchExtendTimer() {
+    if (this.batchExtendTimer) {
+      clearInterval(this.batchExtendTimer)
+      this.batchExtendTimer = null
+    }
+  }
+
+  async processBatchExtensions() {
+    if (this.visibilityManagement.size === 0) return
+
+    // Group messages by queue for batch processing
+    const queueGroups = new Map()
+    const now = Date.now()
+
+    for (const [messageId, messageData] of this.visibilityManagement) {
+      // Check if message still exists in tracking (might have been deleted)
+      if (!this.visibilityManagement.has(messageId)) continue
+      
+      // Check if message needs extension
+      if (now >= messageData.nextExtendTime) {
+        // Check max extensions
+        if (messageData.extensionCount >= messageData.maxExtensions) {
+          this.logger.warn('ACSQS | processBatchExtensions | Max extensions reached | %s | %s', messageData.queueName, messageId)
+          this.removeVisibilityTracking(messageId)
+          continue
+        }
+
+        if (!queueGroups.has(messageData.queueName)) {
+          queueGroups.set(messageData.queueName, [])
+        }
+        queueGroups.get(messageData.queueName).push(messageData)
+      }
+    }
+
+    // Process each queue's extensions in batch
+    for (const [queueName, messages] of queueGroups) {
+      await this.extendVisibilityBatch(queueName, messages)
+    }
+  }
+
+  async extendVisibilityBatch(queueName, messages) {
+    if (messages.length === 0) return
+
+    const config = _.find(this.availableLists, { name: queueName })
+    if (!config) return
+
+    const visibilityTimeout = _.get(config, 'visibilityTimeout', 30)
+    const queueUrl = await this.getQueueUrl(config)
+    
+    // Split into chunks of 10 (AWS SQS batch limit)
+    const chunks = _.chunk(messages, 10)
+    
+    for (let i = 0; i < chunks.length; i++) {
+      const chunk = chunks[i]
+      
+      // Add delay between chunks to avoid throttling (except for first chunk)
+      if (i > 0) {
+        await sleep(100) // 100ms delay
+      }
+      const entries = chunk.map(messageData => ({
+        Id: messageData.messageId,
+        ReceiptHandle: messageData.receiptHandle,
+        VisibilityTimeout: visibilityTimeout
+      }))
+
+      const sqsParams = {
+        QueueUrl: queueUrl,
+        Entries: entries
+      }
+
+      try {
+        const command = new ChangeMessageVisibilityBatchCommand(sqsParams)
+        const response = await this.sqs.send(command)
+
+        // Update tracking for successful extensions
+        const successful = new Set((response.Successful || []).map(s => s.Id))
+        const failed = new Set((response.Failed || []).map(f => f.Id))
+
+        for (const messageData of chunk) {
+          if (successful.has(messageData.messageId)) {
+            // Update extension tracking
+            messageData.extensionCount++
+            messageData.nextExtendTime = Date.now() + (visibilityTimeout * 0.8 * 1000)
+            
+            if (config.debug) {
+              this.logger.debug('ACSQS | extendVisibilityBatch | Success | %s | M %s | %ss | Count: %s', 
+                queueName, messageData.messageId, visibilityTimeout, messageData.extensionCount)
+            }
+          }
+          else if (failed.has(messageData.messageId)) {
+            // Handle failed extension
+            const failedItem = response.Failed.find(f => f.Id === messageData.messageId)
+            this.logger.warn('ACSQS | extendVisibilityBatch | Failed | %s | M %s | %s', 
+              queueName, messageData.messageId, failedItem?.Message || 'Unknown error')
+            
+            // Remove from tracking if receipt handle expired or other permanent error
+            if (failedItem?.Code === 'ReceiptHandleIsInvalid' || failedItem?.Code === 'MessageNotInflight') {
+              this.removeVisibilityTracking(messageData.messageId)
+            }
+          }
+        }
+
+      }
+      catch (e) {
+        // Handle specific AWS errors
+        if (e.message && e.message.includes('throttled')) {
+          this.logger.warn('ACSQS | extendVisibilityBatch | Throttled | %s | Chunk %s/%s | Retrying in 500ms', 
+            queueName, i + 1, chunks.length)
+          
+          // Wait longer and retry once
+          await sleep(500)
+          try {
+            const retryCommand = new ChangeMessageVisibilityBatchCommand(sqsParams)
+            const retryResponse = await this.sqs.send(retryCommand)
+            
+            // Process retry response same as above
+            const successful = new Set((retryResponse.Successful || []).map(s => s.Id))
+            const failed = new Set((retryResponse.Failed || []).map(f => f.Id))
+
+            for (const messageData of chunk) {
+              if (successful.has(messageData.messageId)) {
+                messageData.extensionCount++
+                messageData.nextExtendTime = Date.now() + (visibilityTimeout * 0.8 * 1000)
+              }
+              else if (failed.has(messageData.messageId)) {
+                const failedItem = retryResponse.Failed.find(f => f.Id === messageData.messageId)
+                if (failedItem?.Code === 'ReceiptHandleIsInvalid' || failedItem?.Code === 'MessageNotInflight') {
+                  this.removeVisibilityTracking(messageData.messageId)
+                }
+              }
+            }
+          }
+          catch (retryError) {
+            this.logger.error('ACSQS | extendVisibilityBatch | Retry failed | %s | %s', queueName, retryError?.message)
+            for (const messageData of chunk) {
+              this.removeVisibilityTracking(messageData.messageId)
+            }
+          }
+        }
+        else {
+          this.logger.error('ACSQS | extendVisibilityBatch | %s | Chunk size: %s | %s', queueName, chunk.length, e?.message)
+          
+          // Remove all messages from tracking if batch failed completely
+          for (const messageData of chunk) {
+            this.removeVisibilityTracking(messageData.messageId)
+          }
+        }
+      }
+    }
+  }
+
+  addVisibilityTracking(messageId, queueName, receiptHandle, config) {
+    // Check if we're at max capacity
+    if (this.visibilityManagement.size >= this.maxConcurrentMessages) {
+      this.logger.warn('ACSQS | addVisibilityTracking | Max concurrent messages reached | %s', this.maxConcurrentMessages)
+      return false
+    }
+
+    const visibilityTimeout = _.get(config, 'visibilityTimeout', 30)
+    const maxExtensions = _.get(config, 'maxVisibilityExtensions', 12) // how many times we can extend visibility
+
+    this.visibilityManagement.set(messageId, {
+      messageId,
+      queueName,
+      receiptHandle,
+      extensionCount: 0,
+      maxExtensions,
+      nextExtendTime: Date.now() + (visibilityTimeout * 0.8 * 1000),
+      createdAt: Date.now()
+    })
+
+    return true
+  }
+
+  removeVisibilityTracking(messageId) {
+    this.visibilityManagement.delete(messageId)
+  }
+
+ 
   async getAllLists({ throwError = false } = {}) {
     let response = []
     for (const list of this.availableLists) {
@@ -67,7 +262,6 @@ class ACSQS {
       if (this.throwError || throwError) throw e
     }
   }
-
 
   async sendSQSMessage({ name, message, messageGroupId, deDuplicationId, delay, throwError, debug }) {
     const config = _.find(this.availableLists, { name })
@@ -165,62 +359,6 @@ class ACSQS {
     }
   }
 
-  async extendVisibility({ name, message, throwError }) {
-    const config = _.find(this.availableLists, { name })
-    if (!config) {
-      this.logger.error('AWS | extendVisibility | configurationMissing | %s', name)
-      throw new Error('configurationForListMissing')
-    }
-
-    const visibilityTimeout = _.get(config, 'visibilityTimeout', 15)
-    const maxVisibilityExtensions = _.get(config, 'maxVisibilityExtensions', 12) // max number of times the extension can me made (12 x 15s = 3min)
-    
-    const { MessageId: messageId, ReceiptHandle: receiptHandle } = message
-
-     // Check if we've reached maximum extensions
-    if (this.visibilityTimer[messageId] && this.visibilityTimer[messageId].visibilityExtensionCount >= maxVisibilityExtensions) {
-      this.logger.warn('ACSQS | extendVisibility | %s | M %s | Max extensions reached | %s | %j', name, messageId, maxVisibilityExtensions, message)
-      this.deleteVisibilityTimer({ messageId })
-      return
-    }
-    
-    // Track extension count
-    if (this.visibilityTimer[messageId]) {
-      this.visibilityTimer[messageId].visibilityExtensionCount++
-    }
-    
-    const sqsParams = {
-      QueueUrl: await this.getQueueUrl(config),
-      ReceiptHandle: receiptHandle,
-      VisibilityTimeout: visibilityTimeout
-    }
-    const command = new ChangeMessageVisibilityCommand(sqsParams)
-    try {
-      const response = await this.sqs.send(command)
-      if (config.debug) {
-        const visibilityExtensionCount = this.visibilityTimer[messageId] ? this.visibilityTimer[messageId].visibilityExtensionCount : 0
-        this.logger.debug('ACSQS | extendVisibility | %s |  M %s | %ss | %s | %j', name, messageId, visibilityTimeout, visibilityExtensionCount, message)
-      }
-
-      return response
-    }
-    catch(e) {
-      this.logger.error('ACSQS | extendVisibility | %s | %s', name, e?.message)
-      this.deleteVisibilityTimer({ messageId })
-      if (this.throwError || throwError) throw e
-    }
-  }
-
-  deleteVisibilityTimer({ messageId }) {
-    if (this.visibilityTimer[messageId]) {
-      clearTimeout(this.visibilityTimer[messageId].timer)
-      const self = this
-      setTimeout(() => {
-        delete self.visibilityTimer[messageId]
-      }, 1000)
-    }
-  }
-
   async receiveSQSMessages({ name, throwError, debug }) {
     const config = _.find(this.availableLists, { name })
     if (!config) {
@@ -241,7 +379,6 @@ class ACSQS {
       const result = await this.sqs.send(command)
       if (!_.size(result.Messages)) return
       
-      // Benutze Arrow-Funktion, um `this` beizubehalten
       const messages = await Promise.all(result.Messages.map(async (message) => {
         if (message.Body.startsWith('s3:')) {
           const key = message.Body.replace('s3:', '')
@@ -251,27 +388,14 @@ class ACSQS {
             message.s3key = key
           }
           catch(e) {
-            this.logger.error('ACSQS | receiveSQSMessages | s3KeyInvalid | %s', name, key)         
+            this.logger.error('ACSQS | receiveSQSMessages | s3KeyInvalid | %s | %s', name, key, e?.message)         
           }
         }
   
         if (visibilityTimeout > 0) {
-          // start visibility timer that automatically extends visibility of the message if required
-          const { MessageId: messageId } = message
-          const timeoutMs = Math.floor(visibilityTimeout * 0.8 * 1000)
-          const self = this // `this` als lokale Variable speichern
-          
-          this.visibilityTimer[messageId] = {
-            // Arrow-Funktion für setInterval damit `this` erhalten bleibt,
-            // oder verwende die lokale Variable `self`
-            timer: setInterval(() => {
-              this.extendVisibility({ name, message })
-                .catch(e => {
-                  this.logger.error('ACSQS | AutoExtendVisibility | Failed %s', e.message)
-                })
-            }, timeoutMs),
-            visibilityExtensionCount: 0
-          }
+          // Add to visibility tracking instead of individual timers
+          const { MessageId: messageId, ReceiptHandle: receiptHandle } = message
+          this.addVisibilityTracking(messageId, name, receiptHandle, config)
         }
   
         return message
@@ -305,11 +429,9 @@ class ACSQS {
       if (item.s3key) {
         s3keys.push({ Key: item.s3key })
       }
-      if (this.visibilityTimer[messageId]) {
-        this.deleteVisibilityTimer({ messageId })
-      }
+      // Remove from visibility tracking
+      this.removeVisibilityTracking(messageId)
     }
-
 
     let sqsParams = {
       QueueUrl: await this.getQueueUrl(config),
@@ -327,7 +449,7 @@ class ACSQS {
             Objects: s3keys,
           }
         }
-        const command = new DeleteObjectsCommand(input);
+        const command = new DeleteObjectsCommand(input)
         this.s3.send(command)
       }
       return response
@@ -338,6 +460,48 @@ class ACSQS {
     }
   }
 
+  // Cleanup method for graceful shutdown
+  async shutdown() {
+    this.stopBatchExtendTimer()
+    this.visibilityManagement.clear()
+    this.logger.info('ACSQS | shutdown | Visibility management stopped and cleared')
+  }
+
+  // Get visibility tracking stats for monitoring
+  getVisibilityStats() {
+    const stats = {
+      totalTracked: this.visibilityManagement.size,
+      queueBreakdown: {},
+      oldestMessage: null,
+      avgExtensions: 0
+    }
+
+    let totalExtensions = 0
+    let oldestTime = Date.now()
+
+    for (const [messageId, data] of this.visibilityManagement) {
+      if (!stats.queueBreakdown[data.queueName]) {
+        stats.queueBreakdown[data.queueName] = 0
+      }
+      stats.queueBreakdown[data.queueName]++
+      totalExtensions += data.extensionCount
+      
+      if (data.createdAt < oldestTime) {
+        oldestTime = data.createdAt
+        stats.oldestMessage = {
+          messageId,
+          age: Date.now() - data.createdAt,
+          extensions: data.extensionCount
+        }
+      }
+    }
+
+    if (this.visibilityManagement.size > 0) {
+      stats.avgExtensions = totalExtensions / this.visibilityManagement.size
+    }
+
+    return stats
+  }
 
   // helpers
   async fetchS3Object({ key }) {
@@ -356,7 +520,6 @@ class ACSQS {
       throw e
     }
   }
-
 }
 
 module.exports = ACSQS
