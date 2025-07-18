@@ -120,7 +120,7 @@ Preparations you have to make before running the tests:
 + export the AWS profile to use for tests (if it is not your default profile) using  **export AWS_PROFILE=development**
 + export the AWS account id using **export awsaccount=12345**
 + create a SQS list named "test_acsqs"
-+ create a bucket and export the name using **export bucket=acsqs-test-bucket**
++ create a bucket and export the name using **export bucket=sqstest.admiralcloud.com**
 + export the node test environment using **export NODE_ENV=test**
 
 **ATTENTION**: Tests may fail when checking the SQS length. This is a by-design failure:

@@ -128,59 +128,56 @@ class ACSQS {
   }
 
   async processChunk(queueName, chunk, config, chunkNumber, totalChunks) {
-    // Final check: only process messages that still exist in tracking (right before AWS call)
-    const validChunk = chunk.filter(messageData => this.visibilityManagement.has(messageData.messageId))
+    const validChunk = this.getValidChunk(chunk)
     if (validChunk.length === 0) return
 
-    const visibilityTimeout = _.get(config, 'visibilityTimeout', 15)
-    const queueUrl = await this.getQueueUrl(config)
+    const sqsParams = await this.buildSQSParams(validChunk, config)
+    await this.executeChunkWithRetry(queueName, validChunk, sqsParams, config, chunkNumber, totalChunks)
+  }
 
+  getValidChunk(chunk) {
+    return chunk.filter(messageData => this.visibilityManagement.has(messageData.messageId))
+  }
+
+  async buildSQSParams(validChunk, config) {
+    const visibilityTimeout = _.get(config, 'visibilityTimeout', 30)
     const entries = validChunk.map(messageData => ({
       Id: messageData.messageId,
       ReceiptHandle: messageData.receiptHandle,
       VisibilityTimeout: visibilityTimeout
     }))
 
-    const sqsParams = {
-      QueueUrl: queueUrl,
+    return {
+      QueueUrl: await this.getQueueUrl(config),
       Entries: entries
     }
+  }
 
-    // Retry logic with exponential backoff
+  async executeChunkWithRetry(queueName, validChunk, sqsParams, config, chunkNumber, totalChunks) {
     const maxRetries = 2
     let lastError = null
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      // Add delay for retries (not for first attempt)
       if (attempt > 1) {
-        const isThrottled = lastError?.message?.includes('throttled')
-        const delayMs = isThrottled ? 500 : 200
-        
-        this.logger.warn('ACSQS | processChunk | Retry attempt %s/%s | %s | Chunk %s/%s | Waiting %sms', 
-          attempt, maxRetries, queueName, chunkNumber, totalChunks, delayMs)
-          
-        await sleep(delayMs)
+        await this.handleRetryDelay(lastError, attempt, maxRetries, queueName, chunkNumber, totalChunks)
       }
 
       try {
         const command = new ChangeMessageVisibilityBatchCommand(sqsParams)
         const response = await this.sqs.send(command)
         
-        // Success - handle response and exit retry loop
+        const visibilityTimeout = _.get(config, 'visibilityTimeout', 30)
         this.handleChunkResponse(queueName, validChunk, response, config, visibilityTimeout)
         return
       }
       catch (error) {
         lastError = error
         
-        // Don't retry for certain permanent errors
-        if (error.message?.includes('ReceiptHandleIsInvalid') || 
-            error.message?.includes('MessageNotInflight')) {
+        if (this.isPermanentError(error)) {
           this.logger.warn('ACSQS | processChunk | Permanent error, not retrying | %s | %s', queueName, error.message)
           break
         }
         
-        // Log error but continue to retry (if attempts left)
         if (attempt < maxRetries) {
           this.logger.warn('ACSQS | processChunk | Attempt %s failed, will retry | %s | %s', 
             attempt, queueName, error.message)
@@ -188,11 +185,28 @@ class ACSQS {
       }
     }
 
-    // All retries failed - log final error and cleanup
+    this.handleAllRetriesFailed(queueName, validChunk, lastError)
+  }
+
+  async handleRetryDelay(lastError, attempt, maxRetries, queueName, chunkNumber, totalChunks) {
+    const isThrottled = lastError?.message?.includes('throttled')
+    const delayMs = isThrottled ? 500 : 200
+    
+    this.logger.warn('ACSQS | processChunk | Retry attempt %s/%s | %s | Chunk %s/%s | Waiting %sms', 
+      attempt, maxRetries, queueName, chunkNumber, totalChunks, delayMs)
+      
+    await sleep(delayMs)
+  }
+
+  isPermanentError(error) {
+    return error.message?.includes('ReceiptHandleIsInvalid') || 
+           error.message?.includes('MessageNotInflight')
+  }
+
+  handleAllRetriesFailed(queueName, validChunk, lastError) {
     this.logger.error('ACSQS | processChunk | All retries failed | %s | Chunk size: %s | %s', 
       queueName, validChunk.length, lastError?.message)
     
-    // Remove all messages from tracking if all attempts failed
     for (const messageData of validChunk) {
       this.removeVisibilityTracking(messageData.messageId)
     }
@@ -253,7 +267,7 @@ class ACSQS {
       return false
     }
 
-    const visibilityTimeout = _.get(config, 'visibilityTimeout', 15)
+    const visibilityTimeout = _.get(config, 'visibilityTimeout', 30)
     const maxExtensions = _.get(config, 'maxVisibilityExtensions', 12)
 
     this.visibilityManagement.set(messageId, {
