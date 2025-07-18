@@ -5,22 +5,22 @@
   "repository": "admiralcloud/ac-sqs",
   "version": "3.2.0",
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.806.0",
-    "@aws-sdk/client-sqs": "^3.806.0",
+    "@aws-sdk/client-s3": "^3.846.0",
+    "@aws-sdk/client-sqs": "^3.846.0",
     "lodash": "^4.17.21",
     "uuid": "^11.1.0"
   },
   "devDependencies": {
     "ac-semantic-release": "^0.4.6",
     "chai": "^4.5.0",
-    "eslint": "^9.26.0",
-    "mocha": "^11.2.2"
+    "eslint": "^9.31.0",
+    "mocha": "^11.7.1"
   },
   "scripts": {
     "test": "mocha --reporter spec"
   },
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=20.0.0"
   },
   "resolutions": {
     "mocha/chokidar/braces": "^3.0.3"
