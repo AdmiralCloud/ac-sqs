@@ -1,3 +1,29 @@
+
+## [3.2.1](https://github.com/admiralcloud/ac-sqs/compare/v3.2.0..v3.2.1) (2025-07-18 12:57:51)
+
+
+### Bug Fix
+
+* **App:** Reduced code complexity | MP | [0313cc01d90d9e4d1ad3b7ef3136af7dfc72d717](https://github.com/admiralcloud/ac-sqs/commit/0313cc01d90d9e4d1ad3b7ef3136af7dfc72d717)    
+Create smaller functions  
+Related issues: [admiralcloud/ac-sqs#1](https://github.com/admiralcloud/ac-sqs/issues/1) [admiralcloud/ac-api-server#340](https://github.com/admiralcloud/ac-api-server/issues/340)
+* **App:** Improved code quality | MP | [0d7e40518804f8c227cbc20c602510edada2e02e](https://github.com/admiralcloud/ac-sqs/commit/0d7e40518804f8c227cbc20c602510edada2e02e)    
+Separated huge function into smaller parts  
+Related issues: [admiralcloud/ac-sqs#1](https://github.com/admiralcloud/ac-sqs/issues/1) [admiralcloud/ac-api-server#340](https://github.com/admiralcloud/ac-api-server/issues/340)
+* **App:** Improved code quality | MP | [cd9f5d3969d4aac9c3c87e7e84dd5788e9929cce](https://github.com/admiralcloud/ac-sqs/commit/cd9f5d3969d4aac9c3c87e7e84dd5788e9929cce)    
+Improved code quality  
+Related issues:
+* **App:** Requested code changes | MP | [39aa6c33b9087fcb2c3cfa075716a5dd83e07550](https://github.com/admiralcloud/ac-sqs/commit/39aa6c33b9087fcb2c3cfa075716a5dd83e07550)    
+Improved code quality  
+Related issues:
+* **App:** Improved visibility management | MP | [d45111846668fe3db268fd40987c726e82e1074c](https://github.com/admiralcloud/ac-sqs/commit/d45111846668fe3db268fd40987c726e82e1074c)    
+Add batch processing and throttling for visibility extension, better cleanup, graceful shutdown and stats  
+Related issues:
+### Chores
+
+* **App:** Updated packages | MP | [c6a2d43081047626aa60d5cb5f97427760143880](https://github.com/admiralcloud/ac-sqs/commit/c6a2d43081047626aa60d5cb5f97427760143880)    
+Updated packages  
+Related issues:
  
 # [3.2.0](https://github.com/admiralcloud/ac-sqs/compare/v3.1.2..v3.2.0) (2025-05-11 11:56:57)
 
