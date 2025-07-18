@@ -106,108 +106,143 @@ class ACSQS {
     const config = _.find(this.availableLists, { name: queueName })
     if (!config) return
 
-    const visibilityTimeout = _.get(config, 'visibilityTimeout', 15)
-    const queueUrl = await this.getQueueUrl(config)
-    
-    // Split into chunks of 10 (AWS SQS batch limit)
-    const chunks = _.chunk(messages, 10)
-    
+    const chunks = this.chunkMessages(messages)
+    await this.processAllChunks(queueName, chunks, config)
+  }
+
+  chunkMessages(messages) {
+    return _.chunk(messages, 10)
+  }
+
+  async processAllChunks(queueName, chunks, config) {
     for (let i = 0; i < chunks.length; i++) {
       const chunk = chunks[i]
       
       // Add delay between chunks to avoid throttling (except for first chunk)
       if (i > 0) {
-        await new Promise(resolve => setTimeout(resolve, 100)) // 100ms delay
+        await sleep(100)
       }
-      const entries = chunk.map(messageData => ({
-        Id: messageData.messageId,
-        ReceiptHandle: messageData.receiptHandle,
-        VisibilityTimeout: visibilityTimeout
-      }))
 
-      const sqsParams = {
-        QueueUrl: queueUrl,
-        Entries: entries
+      await this.processChunk(queueName, chunk, config, i + 1, chunks.length)
+    }
+  }
+
+  async processChunk(queueName, chunk, config, chunkNumber, totalChunks) {
+    // Final check: only process messages that still exist in tracking (right before AWS call)
+    const validChunk = chunk.filter(messageData => this.visibilityManagement.has(messageData.messageId))
+    if (validChunk.length === 0) return
+
+    const visibilityTimeout = _.get(config, 'visibilityTimeout', 15)
+    const queueUrl = await this.getQueueUrl(config)
+
+    const entries = validChunk.map(messageData => ({
+      Id: messageData.messageId,
+      ReceiptHandle: messageData.receiptHandle,
+      VisibilityTimeout: visibilityTimeout
+    }))
+
+    const sqsParams = {
+      QueueUrl: queueUrl,
+      Entries: entries
+    }
+
+    // Retry logic with exponential backoff
+    const maxRetries = 2
+    let lastError = null
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      // Add delay for retries (not for first attempt)
+      if (attempt > 1) {
+        const isThrottled = lastError?.message?.includes('throttled')
+        const delayMs = isThrottled ? 500 : 200
+        
+        this.logger.warn('ACSQS | processChunk | Retry attempt %s/%s | %s | Chunk %s/%s | Waiting %sms', 
+          attempt, maxRetries, queueName, chunkNumber, totalChunks, delayMs)
+          
+        await sleep(delayMs)
       }
 
       try {
         const command = new ChangeMessageVisibilityBatchCommand(sqsParams)
         const response = await this.sqs.send(command)
-
-        // Update tracking for successful extensions
-        const successful = new Set((response.Successful || []).map(s => s.Id))
-        const failed = new Set((response.Failed || []).map(f => f.Id))
-
-        for (const messageData of chunk) {
-          if (successful.has(messageData.messageId)) {
-            // Update extension tracking
-            messageData.extensionCount++
-            messageData.nextExtendTime = Date.now() + (visibilityTimeout * 0.8 * 1000)
-            
-            if (config.debug) {
-              this.logger.debug('ACSQS | extendVisibilityBatch | Success | %s | M %s | %ss | Count: %s', 
-                queueName, messageData.messageId, visibilityTimeout, messageData.extensionCount)
-            }
-          }
-          else if (failed.has(messageData.messageId)) {
-            // Handle failed extension
-            const failedItem = response.Failed.find(f => f.Id === messageData.messageId)
-            this.logger.warn('ACSQS | extendVisibilityBatch | Failed | %s | M %s | %s', 
-              queueName, messageData.messageId, failedItem?.Message || 'Unknown error')
-            
-            // Remove from tracking if receipt handle expired or other permanent error
-            if (failedItem?.Code === 'ReceiptHandleIsInvalid' || failedItem?.Code === 'MessageNotInflight') {
-              this.removeVisibilityTracking(messageData.messageId)
-            }
-          }
-        }
-
+        
+        // Success - handle response and exit retry loop
+        this.handleChunkResponse(queueName, validChunk, response, config, visibilityTimeout)
+        return
       }
-      catch (e) {
-        // Handle specific AWS errors
-        if (e.message && e.message.includes('throttled')) {
-          this.logger.warn('ACSQS | extendVisibilityBatch | Throttled | %s | Chunk %s/%s | Retrying in 500ms', 
-            queueName, i + 1, chunks.length)
-          
-          // Wait longer and retry once
-          await sleep(500)
-          try {
-            const retryCommand = new ChangeMessageVisibilityBatchCommand(sqsParams)
-            const retryResponse = await this.sqs.send(retryCommand)
-            
-            // Process retry response same as above
-            const successful = new Set((retryResponse.Successful || []).map(s => s.Id))
-            const failed = new Set((retryResponse.Failed || []).map(f => f.Id))
-
-            for (const messageData of chunk) {
-              if (successful.has(messageData.messageId)) {
-                messageData.extensionCount++
-                messageData.nextExtendTime = Date.now() + (visibilityTimeout * 0.8 * 1000)
-              }
-              else if (failed.has(messageData.messageId)) {
-                const failedItem = retryResponse.Failed.find(f => f.Id === messageData.messageId)
-                if (failedItem?.Code === 'ReceiptHandleIsInvalid' || failedItem?.Code === 'MessageNotInflight') {
-                  this.removeVisibilityTracking(messageData.messageId)
-                }
-              }
-            }
-          }
-          catch (retryError) {
-            this.logger.error('ACSQS | extendVisibilityBatch | Retry failed | %s | %s', queueName, retryError?.message)
-            for (const messageData of chunk) {
-              this.removeVisibilityTracking(messageData.messageId)
-            }
-          }
+      catch (error) {
+        lastError = error
+        
+        // Don't retry for certain permanent errors
+        if (error.message?.includes('ReceiptHandleIsInvalid') || 
+            error.message?.includes('MessageNotInflight')) {
+          this.logger.warn('ACSQS | processChunk | Permanent error, not retrying | %s | %s', queueName, error.message)
+          break
         }
-        else {
-          this.logger.error('ACSQS | extendVisibilityBatch | %s | Chunk size: %s | %s', queueName, chunk.length, e?.message)
-          
-          // Remove all messages from tracking if batch failed completely
-          for (const messageData of chunk) {
-            this.removeVisibilityTracking(messageData.messageId)
-          }
+        
+        // Log error but continue to retry (if attempts left)
+        if (attempt < maxRetries) {
+          this.logger.warn('ACSQS | processChunk | Attempt %s failed, will retry | %s | %s', 
+            attempt, queueName, error.message)
         }
       }
+    }
+
+    // All retries failed - log final error and cleanup
+    this.logger.error('ACSQS | processChunk | All retries failed | %s | Chunk size: %s | %s', 
+      queueName, validChunk.length, lastError?.message)
+    
+    // Remove all messages from tracking if all attempts failed
+    for (const messageData of validChunk) {
+      this.removeVisibilityTracking(messageData.messageId)
+    }
+  }
+
+  handleChunkResponse(queueName, validChunk, response, config, visibilityTimeout) {
+    const successful = new Set((response.Successful || []).map(s => s.Id))
+    const failed = new Set((response.Failed || []).map(f => f.Id))
+
+    for (const messageData of validChunk) {
+      // Check again if message still exists (might have been deleted during AWS call)
+      if (!this.visibilityManagement.has(messageData.messageId)) continue
+      
+      if (successful.has(messageData.messageId)) {
+        this.updateSuccessfulMessage(messageData, visibilityTimeout, queueName, config)
+      }
+      else if (failed.has(messageData.messageId)) {
+        this.handleFailedMessage(messageData, response.Failed, queueName, config)
+      }
+    }
+  }
+
+  updateSuccessfulMessage(messageData, visibilityTimeout, queueName, config) {
+    messageData.extensionCount++
+    messageData.nextExtendTime = Date.now() + (visibilityTimeout * 0.8 * 1000)
+    
+    if (config.debug) {
+      this.logger.debug('ACSQS | extendVisibilityBatch | Success | %s | M %s | %ss | Count: %s', 
+        queueName, messageData.messageId, visibilityTimeout, messageData.extensionCount)
+    }
+  }
+
+  handleFailedMessage(messageData, failedItems, queueName, config) {
+    const failedItem = failedItems.find(f => f.Id === messageData.messageId)
+    
+    // Log only if it's not an expired receipt handle (which is normal)
+    if (failedItem?.Code === 'ReceiptHandleIsInvalid') {
+      if (config.debug) {
+        this.logger.debug('ACSQS | extendVisibilityBatch | Receipt handle expired (normal) | %s | M %s', 
+          queueName, messageData.messageId)
+      }
+    }
+    else {
+      this.logger.warn('ACSQS | extendVisibilityBatch | Failed | %s | M %s | %s', 
+        queueName, messageData.messageId, failedItem?.Message || 'Unknown error')
+    }
+    
+    // Remove from tracking if receipt handle expired or other permanent error
+    if (failedItem?.Code === 'ReceiptHandleIsInvalid' || failedItem?.Code === 'MessageNotInflight') {
+      this.removeVisibilityTracking(messageData.messageId)
     }
   }
 
