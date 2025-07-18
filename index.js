@@ -106,7 +106,7 @@ class ACSQS {
     const config = _.find(this.availableLists, { name: queueName })
     if (!config) return
 
-    const visibilityTimeout = _.get(config, 'visibilityTimeout', 30)
+    const visibilityTimeout = _.get(config, 'visibilityTimeout', 15)
     const queueUrl = await this.getQueueUrl(config)
     
     // Split into chunks of 10 (AWS SQS batch limit)
@@ -218,7 +218,7 @@ class ACSQS {
       return false
     }
 
-    const visibilityTimeout = _.get(config, 'visibilityTimeout', 30)
+    const visibilityTimeout = _.get(config, 'visibilityTimeout', 15)
     const maxExtensions = _.get(config, 'maxVisibilityExtensions', 12)
 
     this.visibilityManagement.set(messageId, {
