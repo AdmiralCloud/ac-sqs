@@ -6,7 +6,7 @@ const { SQSClient, SendMessageCommand, SendMessageBatchCommand, ReceiveMessageCo
 const { S3Client, GetObjectCommand, PutObjectCommand, DeleteObjectsCommand } = require("@aws-sdk/client-s3")
 
 class ACSQS {
-  constructor({ region = 'eu-central-1', account, availableLists, useS3 = { enabled: true, bucket: undefined }, messageThreshold = 250e3, debug, logger = console, throwError = false, maxConcurrentMessages = 1000 }) {
+  constructor({ region = 'eu-central-1', account, availableLists, useS3 = { enabled: true, bucket: undefined }, messageThreshold = 250e3, debug, logger = console, throwError = false, maxConcurrentMessages = 3000 }) {
     this.region = region
     this.account = account
     this.availableLists = availableLists
@@ -16,8 +16,9 @@ class ACSQS {
     
     // Improved visibility management
     this.visibilityManagement = new Map()
-    this.batchExtendTimer = null
-    this.batchExtendInterval = 5000 // Batch extend every 5 seconds
+    this.batchExtendRunning = false
+    this.stopBatchExtend = false
+    this.batchExtendInterval = 5000 // Check every 5 seconds
 
     const awsConfig = {
       region,
@@ -32,23 +33,38 @@ class ACSQS {
       this.s3 = new S3Client(awsConfig)
     }
 
-    // Start batch extend timer
+    // Start batch extend loop
     this.startBatchExtendTimer()
   }
 
-  startBatchExtendTimer() {
-    if (this.batchExtendTimer) return
+  async startBatchExtendTimer() {
+    if (this.batchExtendRunning) return
     
-    this.batchExtendTimer = setInterval(() => {
-      this.processBatchExtensions()
-    }, this.batchExtendInterval)
+    this.batchExtendRunning = true
+    this.stopBatchExtend = false
+
+    while (true) {
+      try {
+        if (this.stopBatchExtend) break
+        
+        await sleep(this.batchExtendInterval)
+        
+        if (this.stopBatchExtend) break
+        
+        await this.processBatchExtensions()
+      }
+      catch (error) {
+        this.logger.error('ACSQS | startBatchExtendTimer | Error in batch extend loop | %s', error?.message)
+        // Don't break the loop on errors, just log and continue
+        await sleep(1000) // Wait 1s on error before retrying
+      }
+    }
+    
+    this.batchExtendRunning = false
   }
 
   stopBatchExtendTimer() {
-    if (this.batchExtendTimer) {
-      clearInterval(this.batchExtendTimer)
-      this.batchExtendTimer = null
-    }
+    this.stopBatchExtend = true
   }
 
   async processBatchExtensions() {
@@ -101,7 +117,7 @@ class ACSQS {
       
       // Add delay between chunks to avoid throttling (except for first chunk)
       if (i > 0) {
-        await sleep(100) // 100ms delay
+        await new Promise(resolve => setTimeout(resolve, 100)) // 100ms delay
       }
       const entries = chunk.map(messageData => ({
         Id: messageData.messageId,
@@ -203,7 +219,7 @@ class ACSQS {
     }
 
     const visibilityTimeout = _.get(config, 'visibilityTimeout', 30)
-    const maxExtensions = _.get(config, 'maxVisibilityExtensions', 12) // how many times we can extend visibility
+    const maxExtensions = _.get(config, 'maxVisibilityExtensions', 12)
 
     this.visibilityManagement.set(messageId, {
       messageId,
@@ -222,7 +238,28 @@ class ACSQS {
     this.visibilityManagement.delete(messageId)
   }
 
- 
+  // Legacy method for backwards compatibility - now uses batch processing
+  async extendVisibility({ name, message, throwError }) {
+    const config = _.find(this.availableLists, { name })
+    if (!config) {
+      this.logger.error('AWS | extendVisibility | configurationMissing | %s', name)
+      throw new Error('configurationForListMissing')
+    }
+
+    const { MessageId: messageId } = message
+    
+    // Check if message is already being tracked
+    if (this.visibilityManagement.has(messageId)) {
+      // Force immediate extension by setting nextExtendTime to now
+      const messageData = this.visibilityManagement.get(messageId)
+      messageData.nextExtendTime = Date.now()
+      return
+    }
+
+    // Add to tracking if not already present
+    this.addVisibilityTracking(messageId, name, message.ReceiptHandle, config)
+  }
+
   async getAllLists({ throwError = false } = {}) {
     let response = []
     for (const list of this.availableLists) {
@@ -388,7 +425,7 @@ class ACSQS {
             message.s3key = key
           }
           catch(e) {
-            this.logger.error('ACSQS | receiveSQSMessages | s3KeyInvalid | %s | %s', name, key, e?.message)         
+            this.logger.error('ACSQS | receiveSQSMessages | s3KeyInvalid | %s | %s', name, key)         
           }
         }
   
@@ -463,6 +500,12 @@ class ACSQS {
   // Cleanup method for graceful shutdown
   async shutdown() {
     this.stopBatchExtendTimer()
+    
+    // Wait for batch extend loop to finish
+    while (this.batchExtendRunning) {
+      await sleep(100)
+    }
+    
     this.visibilityManagement.clear()
     this.logger.info('ACSQS | shutdown | Visibility management stopped and cleared')
   }
