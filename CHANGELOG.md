@@ -1,4 +1,13 @@
 
+## [3.2.2](https://github.com/admiralcloud/ac-sqs/compare/v3.2.1..v3.2.2) (2025-09-19 05:21:22)
+
+
+### Bug Fix
+
+* **Misc:** Package updates | MP | [feed53274af621d33f5c03bf946d9d3274ad1986](https://github.com/admiralcloud/ac-sqs/commit/feed53274af621d33f5c03bf946d9d3274ad1986)    
+Package updates  
+Related issues:
+
 ## [3.2.1](https://github.com/admiralcloud/ac-sqs/compare/v3.2.0..v3.2.1) (2025-07-18 12:57:51)
 
 
