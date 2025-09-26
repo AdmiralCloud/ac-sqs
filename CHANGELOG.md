@@ -1,3 +1,17 @@
+ 
+# [3.3.0](https://github.com/admiralcloud/ac-sqs/compare/v3.2.2..v3.3.0) (2025-09-26 17:27:53)
+
+
+### Feature
+
+* **App:** Add function to create missing queues | MP | [fa112ba346687587530c03fd470402b1ca3d0f98](https://github.com/admiralcloud/ac-sqs/commit/fa112ba346687587530c03fd470402b1ca3d0f98)    
+Add function to create missing queues  
+Related issues:
+### Chores
+
+* **Misc:** Updated packages | MP | [ccde2c1292e657aaceff82d9978459efc3bf24f7](https://github.com/admiralcloud/ac-sqs/commit/ccde2c1292e657aaceff82d9978459efc3bf24f7)    
+Updated packages  
+Related issues:
 
 ## [3.2.2](https://github.com/admiralcloud/ac-sqs/compare/v3.2.1..v3.2.2) (2025-09-19 05:21:22)
 
