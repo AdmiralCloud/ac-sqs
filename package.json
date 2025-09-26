@@ -3,7 +3,7 @@
   "author": "Mark Poepping (https://www.admiralcloud.com)",
   "license": "MIT",
   "repository": "admiralcloud/ac-sqs",
-  "version": "3.3.1",
+  "version": "3.3.2",
   "dependencies": {
     "@aws-sdk/client-s3": "^3.896.0",
     "@aws-sdk/client-sqs": "^3.896.0",

@@ -1,4 +1,12 @@
 
+## [3.3.2](https://github.com/admiralcloud/ac-sqs/compare/v3.3.1..v3.3.2) (2025-09-26 20:15:26)
+
+
+### Bug Fix
+
+* **App:** Several minor improvement for createQueues | MP | [ef2abc7c6bc2f08e1328cb1c94be479362836323](https://github.com/admiralcloud/ac-sqs/commit/ef2abc7c6bc2f08e1328cb1c94be479362836323)    
+Several minor improvement for createQueues
+
 ## [3.3.1](https://github.com/admiralcloud/ac-sqs/compare/v3.3.0..v3.3.1) (2025-09-26 17:45:21)
 
 
