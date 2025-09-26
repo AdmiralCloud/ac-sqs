@@ -1,3 +1,12 @@
+
+## [3.3.1](https://github.com/admiralcloud/ac-sqs/compare/v3.3.0..v3.3.1) (2025-09-26 17:45:21)
+
+
+### Bug Fix
+
+* **App:** Fixed createSQSlists function | MP | [246023f5eb622a33b7a261d45d68080bcfa29be6](https://github.com/admiralcloud/ac-sqs/commit/246023f5eb622a33b7a261d45d68080bcfa29be6)    
+Improved with logging and improved function names  
+Related issues:
  
 # [3.3.0](https://github.com/admiralcloud/ac-sqs/compare/v3.2.2..v3.3.0) (2025-09-26 17:27:53)
 
