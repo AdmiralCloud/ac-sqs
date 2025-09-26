@@ -2,7 +2,7 @@ const _ = require('lodash')
 const { v4: uuidV4 } = require('uuid')
 const { setTimeout: sleep } = require('timers/promises')
 
-const { SQSClient, SendMessageCommand, SendMessageBatchCommand, ReceiveMessageCommand, DeleteMessageBatchCommand, GetQueueAttributesCommand, ChangeMessageVisibilityBatchCommand } = require('@aws-sdk/client-sqs')
+const { SQSClient, SendMessageCommand, SendMessageBatchCommand, ReceiveMessageCommand, DeleteMessageBatchCommand, GetQueueAttributesCommand, ChangeMessageVisibilityBatchCommand, CreateQueueCommand } = require('@aws-sdk/client-sqs')
 const { S3Client, GetObjectCommand, PutObjectCommand, DeleteObjectsCommand } = require("@aws-sdk/client-s3")
 
 class ACSQS {
@@ -349,7 +349,7 @@ class ACSQS {
     }
   }
 
-  async createQueue({ lists }) {
+  async createQueues({ lists, debug }) {
     for (const list of lists) {
       const config = _.find(this.availableLists, { name: list.name })
       if (!config) {
@@ -361,6 +361,7 @@ class ACSQS {
       const command = new CreateQueueCommand({ QueueName: queueUrl })
       try {
         await this.sqs.send(command)
+        if (debug) this.logger.debug('ACSQS | createQueues | Queue created | %s | %s', list.name, queueUrl)
       }
       catch(e) {
         this.logger.error('AWS | createQueue | %s | %s', list.name, e?.message)
