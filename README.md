@@ -112,6 +112,9 @@ An array of metadata to get. By default only "ApproximateNumberOfMessages" is re
 
 https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_GetQueueAttributes.html
 
+## createQueue
+Call with all lists and let the function check if the queues exist. If not, the missing queue is created.
+
 # Test
 You can run tests using **yarn run test**.
 

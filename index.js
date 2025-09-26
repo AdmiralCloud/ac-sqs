@@ -349,6 +349,26 @@ class ACSQS {
     }
   }
 
+  async createQueue({ lists }) {
+    for (const list of lists) {
+      const config = _.find(this.availableLists, { name: list.name })
+      if (!config) {
+        this.logger.error('AWS | createQueue | configurationMissing | %s', list.name)
+        throw new Error('configurationForListMissing')
+      }
+
+      const queueUrl = await this.getQueueUrl(config)
+      const command = new CreateQueueCommand({ QueueName: queueUrl })
+      try {
+        await this.sqs.send(command)
+      }
+      catch(e) {
+        this.logger.error('AWS | createQueue | %s | %s', list.name, e?.message)
+        if (this.throwError) throw e
+      }
+    }
+  }
+
   async sendSQSMessage({ name, message, messageGroupId, deDuplicationId, delay, throwError, debug }) {
     const config = _.find(this.availableLists, { name })
     if (!config) {
