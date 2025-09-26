@@ -2,7 +2,7 @@ const _ = require('lodash')
 const { v4: uuidV4 } = require('uuid')
 const { setTimeout: sleep } = require('timers/promises')
 
-const { SQSClient, SendMessageCommand, SendMessageBatchCommand, ReceiveMessageCommand, DeleteMessageBatchCommand, GetQueueAttributesCommand, ChangeMessageVisibilityBatchCommand, CreateQueueCommand } = require('@aws-sdk/client-sqs')
+const { SQSClient, SendMessageCommand, SendMessageBatchCommand, ReceiveMessageCommand, DeleteMessageBatchCommand, GetQueueAttributesCommand, ChangeMessageVisibilityBatchCommand, GetQueueUrlCommand, CreateQueueCommand } = require('@aws-sdk/client-sqs')
 const { S3Client, GetObjectCommand, PutObjectCommand, DeleteObjectsCommand } = require("@aws-sdk/client-s3")
 
 class ACSQS {
@@ -146,9 +146,10 @@ class ACSQS {
       ReceiptHandle: messageData.receiptHandle,
       VisibilityTimeout: visibilityTimeout
     }))
+    const { queueUrl } = this.getQueueUrl(config)
 
     return {
-      QueueUrl: await this.getQueueUrl(config),
+      QueueUrl: queueUrl,
       Entries: entries
     }
   }
@@ -318,14 +319,18 @@ class ACSQS {
     return response
   }
 
-  async getQueueUrl({ name, fifo, localPrefix, suffix }) {
-    let queueUrl = `https://sqs.${this.region}.amazonaws.com/${this.account}/` 
-    if (localPrefix) queueUrl += `local_${localPrefix}_`
-    if (process.env['NODE_ENV'] === 'test') queueUrl += 'test_'
-    queueUrl += name
-    if (suffix) queueUrl += suffix
-    if (fifo) queueUrl += '.fifo'
-    return queueUrl
+  getQueueUrl({ name, fifo, localPrefix, suffix }) {
+    // Build queue name using array filtering for cleaner concatenation
+    const queueName = [
+      localPrefix && `local_${localPrefix}_`,
+      process.env['NODE_ENV'] === 'test' && 'test_',
+      name,
+      suffix,
+      fifo && '.fifo'
+    ].filter(Boolean).join('')
+    
+    const queueUrl = `https://sqs.${this.region}.amazonaws.com/${this.account}/${queueName}`
+    return { queueName, queueUrl }
   }
 
   async getQueueAttributes({ name, attributes = ['ApproximateNumberOfMessages'], throwError }) {
@@ -334,8 +339,9 @@ class ACSQS {
       this.logger.error('ACSQS | getQueueAttributes | configurationMissing | %s', name)
       throw new Error('configurationForListMissing')
     }
+    const { queueUrl } = this.getQueueUrl(config)
     let sqsParams = {
-      QueueUrl: await this.getQueueUrl(config),
+      QueueUrl: queueUrl,
       AttributeNames: attributes
     }
     if (config.debug) this.logger.debug('ACSQS | getQueueAttributes | Payload %j', sqsParams)
@@ -357,15 +363,34 @@ class ACSQS {
         throw new Error('configurationForListMissing')
       }
 
-      const queueUrl = await this.getQueueUrl(config)
-      const command = new CreateQueueCommand({ QueueName: queueUrl })
-      try {
-        await this.sqs.send(command)
-        if (debug) this.logger.debug('ACSQS | createQueues | Queue created | %s | %s', list.name, queueUrl)
+      const { queueName } = this.getQueueUrl(config)
+        if (debug) this.logger.info('ACSQS | createQueues | %s | %s', list.name, queueName)
+      const input = {
+        QueueName: queueName
       }
-      catch(e) {
-        this.logger.error('AWS | createQueue | %s | %s', list.name, e?.message)
-        if (this.throwError) throw e
+      const checkCommand = new GetQueueUrlCommand(input)
+      try {
+        await this.sqs.send(checkCommand)
+        continue
+      }
+      catch {
+        if (!_.isEmpty(_.get(config, 'attributes'))) {
+          input.Attributes = config.attributes
+        }
+        if (config?.fifo) input.Attributes = { ...input.Attributes, FifoQueue: 'true' }
+        if (config?.visibilityTimeout) input.Attributes = { ...input.Attributes, VisibilityTimeout: config.visibilityTimeout }
+        if (config?.delay) input.Attributes = { ...input.Attributes, DelaySeconds: config.delay }
+
+
+        const command = new CreateQueueCommand(input)
+        try {
+          await this.sqs.send(command)
+          if (debug) this.logger.info('ACSQS | createQueues | Created | %s | %s', list.name, queueName)
+        }
+        catch(e) {
+          this.logger.error('AWS | createQueue | %s | %s', list.name, e?.message)
+          if (this.throwError) throw e
+        } 
       }
     }
   }
@@ -391,8 +416,9 @@ class ACSQS {
       message = `s3:${key}`
     }
 
+    const { queueUrl } = this.getQueueUrl(config)
     const sqsParams = {
-      QueueUrl: await this.getQueueUrl(config),
+      QueueUrl: queueUrl,
       MessageBody: message
     }
     if (messageGroupId) _.set(sqsParams, 'MessageGroupId', messageGroupId)
@@ -449,8 +475,9 @@ class ACSQS {
       return item
     })
   
+    const { queueUrl } = this.getQueueUrl(config)
     const sqsParams = {
-      QueueUrl: await this.getQueueUrl(config),
+      QueueUrl: queueUrl,
       Entries: entries
     }
     if (debug || config.debug) this.logger.error('ACSQS | sendSQSMessageBatch | Payload %j', sqsParams)
@@ -474,8 +501,9 @@ class ACSQS {
     }
     const visibilityTimeout = _.get(config, 'visibilityTimeout') // if set, will activate visibilityTimeout management
   
+    const { queueUrl } = this.getQueueUrl(config)
     const sqsParams = {
-      QueueUrl: await this.getQueueUrl(config),
+      QueueUrl: queueUrl,
       MaxNumberOfMessages: _.get(config, 'batchSize', 10),
       VisibilityTimeout: _.get(config, 'visibilityTimeout', 30),
       WaitTimeSeconds: _.get(config, 'waitTime', 20)
@@ -540,8 +568,9 @@ class ACSQS {
       this.removeVisibilityTracking(messageId)
     }
 
-    let sqsParams = {
-      QueueUrl: await this.getQueueUrl(config),
+    const { queueUrl } = this.getQueueUrl(config)
+    const sqsParams = {
+      QueueUrl: queueUrl,
       Entries: entries
     }
     if (debug || config.debug) this.logger.debug('ACSQS | deleteSQSMessages | Payload %j', sqsParams)
