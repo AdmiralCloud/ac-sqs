@@ -480,7 +480,7 @@ class ACSQS {
       QueueUrl: queueUrl,
       Entries: entries
     }
-    if (debug || config.debug) this.logger.error('ACSQS | sendSQSMessageBatch | Payload %j', sqsParams)
+    if (debug || config.debug) this.logger.debug('ACSQS | sendSQSMessageBatch | Payload %j', sqsParams)
     
     const command = new SendMessageBatchCommand(sqsParams)
     try {
