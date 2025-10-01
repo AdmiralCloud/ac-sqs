@@ -1,4 +1,18 @@
 
+## [3.3.3](https://github.com/admiralcloud/ac-sqs/compare/v3.3.2..v3.3.3) (2025-10-01 13:47:25)
+
+
+### Bug Fix
+
+* **App:** Fixed log level | MP | [185f1f3ca8f89044488c304b229c19131e784282](https://github.com/admiralcloud/ac-sqs/commit/185f1f3ca8f89044488c304b229c19131e784282)    
+Log debug message as debug not as error  
+Related issues:
+### Chores
+
+* **Misc:** Updated packages | MP | [afb3944237b3924fddb8eae2b5784b3c56a9ed75](https://github.com/admiralcloud/ac-sqs/commit/afb3944237b3924fddb8eae2b5784b3c56a9ed75)    
+Updated packages  
+Related issues:
+
 ## [3.3.2](https://github.com/admiralcloud/ac-sqs/compare/v3.3.1..v3.3.2) (2025-09-26 20:15:26)
 
 
