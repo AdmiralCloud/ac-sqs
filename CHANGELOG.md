@@ -1,3 +1,18 @@
+ 
+# [4.0.0](https://github.com/admiralcloud/ac-sqs/compare/v3.3.3..v4.0.0) (2025-10-15 12:25:07)
+
+
+### Bug Fix
+
+* **App:** Improved sendSQSMessageBatch | MP | [2bc532d24f11ad0e85c9e8bc85d3be8730a3d55c](https://github.com/admiralcloud/ac-sqs/commit/2bc532d24f11ad0e85c9e8bc85d3be8730a3d55c)    
+sendSQSMessageBatch now allows per-message messageGroupId and messageDeduplicationId
+### Chores
+
+* **App:** Updated packages | MP | [7fc6cdcf195a370c714632bd6e6438c39eceab76](https://github.com/admiralcloud/ac-sqs/commit/7fc6cdcf195a370c714632bd6e6438c39eceab76)    
+Updated packages  
+Related issues: [admiralcloud/ac-sqs#1](https://github.com/admiralcloud/ac-sqs/issues/1) [admiralcloud/ac-api-server#340](https://github.com/admiralcloud/ac-api-server/issues/340)
+## BREAKING CHANGES
+* **App:** messageGroupId, messageDeduplicationId and delay are no longer function parameters for sendSQSMessageBatch
 
 ## [3.3.3](https://github.com/admiralcloud/ac-sqs/compare/v3.3.2..v3.3.3) (2025-10-01 13:47:25)
 
