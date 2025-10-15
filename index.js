@@ -6,7 +6,7 @@ const { SQSClient, SendMessageCommand, SendMessageBatchCommand, ReceiveMessageCo
 const { S3Client, GetObjectCommand, PutObjectCommand, DeleteObjectsCommand } = require("@aws-sdk/client-s3")
 
 class ACSQS {
-  constructor({ region = 'eu-central-1', account, availableLists, useS3 = { enabled: true, bucket: undefined }, messageThreshold = 250e3, debug, logger = console, throwError = false, maxConcurrentMessages = 3000 }) {
+  constructor({ region = 'eu-central-1', account, availableLists, useS3 = { enabled: true, bucket: undefined }, messageThreshold = 1000e3, debug, logger = console, throwError = false, maxConcurrentMessages = 3000 }) {
     this.region = region
     this.account = account
     this.availableLists = availableLists
@@ -401,8 +401,9 @@ class ACSQS {
       this.logger.error('AWS | sendSQSMessage | configurationMissing | %s', name)
       throw new Error('configurationForListMissing')
     }
+    const messageThreshold = _.get(config, 'messageThreshold', this.messageThreshold)
 
-    if (this.useS3 && message.length > this.messageThreshold) {
+    if (this.useS3 && message.length > messageThreshold) {
       // store message in S3
       const key = uuidV4()
       const input = {
@@ -437,44 +438,61 @@ class ACSQS {
     }
   }
 
-  async sendSQSMessageBatch({ name, messages, messageGroupId, deDuplicationId, delay, throwError, debug }) {
+  async sendSQSMessageBatch({ name, messages, throwError, debug }) {
     const config = _.find(this.availableLists, { name })
     if (!config) {
       this.logger.error('AWS | sendSQSMessageBatch | configurationMissing | %s', name)
       throw new Error('configurationForListMissing')
     }
-  
+
     const processedMessages = await Promise.all(
       messages.map(async (message) => {
-        let messageBody = message
-        if (this.useS3 && message.length > this.messageThreshold) {
-          // store message in S3
+        const messageBody = _.get(message, 'messageBody')
+        
+        let processedBody = messageBody
+        if (this.useS3 && messageBody.length > this.messageThreshold) {
           const key = uuidV4()
           const input = {
             Bucket: this.bucket,
             Key: key,
             ContentType: 'text/plain',
-            Body: Buffer.from(message, 'utf-8')
+            Body: Buffer.from(messageBody, 'utf-8')
           }
           const command = new PutObjectCommand(input)
           await this.s3.send(command)
-          messageBody = `s3:${key}`
+          processedBody = `s3:${key}`
         }
-        return messageBody
+        
+        return {
+          processedBody,
+          originalMessage: message
+        }
       })
     )
-  
-    const entries = processedMessages.map((messageBody, index) => {
-      const item = {
+
+    const entries = processedMessages.map((item, index) => {
+      const { processedBody, originalMessage } = item
+      
+      const entry = {
         Id: String(index),
-        MessageBody: messageBody
+        MessageBody: processedBody
       }
-      if (messageGroupId) item.MessageGroupId = messageGroupId
-      if (deDuplicationId) item.MessageDeduplicationId = `${deDuplicationId}-${index}`
-      if (delay) item.DelaySeconds = delay
-      return item
+      
+      if (_.get(originalMessage, 'messageGroupId')) {
+        entry.MessageGroupId = _.get(originalMessage, 'messageGroupId')
+      }
+      
+      if (_.get(originalMessage, 'messageDeduplicationId')) {
+        entry.MessageDeduplicationId = _.get(originalMessage, 'messageDeduplicationId')
+      }
+      
+      if (_.get(originalMessage, 'delaySeconds')) {
+        entry.DelaySeconds = _.get(originalMessage, 'delaySeconds')
+      }
+      
+      return entry
     })
-  
+
     const { queueUrl } = this.getQueueUrl(config)
     const sqsParams = {
       QueueUrl: queueUrl,
