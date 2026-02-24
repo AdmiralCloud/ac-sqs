@@ -134,7 +134,6 @@ See https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_Ge
 # Misc
 ## Links
 - [Website](https://www.admiralcloud.com/)
-- [Facebook](https://www.facebook.com/MediaAssetManagement/)
 
 ## License
 [MIT License](https://opensource.org/licenses/MIT) Copyright © 2009-present, AdmiralCloud AG, Mark Poepping

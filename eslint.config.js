@@ -1,13 +1,14 @@
-const globals = require('globals');
+const globals = require('globals')
 
 module.exports = [
   {
+    files: ['index.js', 'test/test.js'],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module',
       globals: {
         ...globals.commonjs,
-        ...globals.es6,
+        ...globals.es2015,
         ...globals.node,
         expect: 'readonly',
         describe: 'readonly',
@@ -15,14 +16,19 @@ module.exports = [
       }
     },
     rules: {
+      'no-const-assign': 'error',
       'space-before-function-paren': 'off',
       'no-extra-semi': 'off',
       'object-curly-spacing': ['error', 'always'],
       'brace-style': ['error', 'stroustrup', { allowSingleLine: true }],
+      'block-spacing': 'error',
       'no-useless-escape': 'off',
-      'standard/no-callback-literal': 'off',
-      'new-cap': 'off',
-      'no-console': ['error', { allow: ['error'] }]
+      'no-console': ['warn', { allow: ['warn', 'error'] }],
+      'no-unused-vars': 'error',
+      'eqeqeq': 'error',
+      'no-var': 'error',
+      'curly': 'error',
+      'prefer-const': ['error', { ignoreReadBeforeAssign: true }]
     }
   }
-];
+]

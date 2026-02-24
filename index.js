@@ -6,7 +6,7 @@ const { SQSClient, SendMessageCommand, SendMessageBatchCommand, ReceiveMessageCo
 const { S3Client, GetObjectCommand, PutObjectCommand, DeleteObjectsCommand } = require("@aws-sdk/client-s3")
 
 class ACSQS {
-  constructor({ region = 'eu-central-1', account, availableLists, useS3 = { enabled: true, bucket: undefined }, messageThreshold = 1000e3, debug, logger = console, throwError = false, maxConcurrentMessages = 3000 }) {
+  constructor({ region = 'eu-central-1', account, availableLists, useS3 = { enabled: true, bucket: undefined }, messageThreshold = 1000e3, logger = console, throwError = false, maxConcurrentMessages = 3000 }) {
     this.region = region
     this.account = account
     this.availableLists = availableLists
@@ -38,18 +38,18 @@ class ACSQS {
   }
 
   async startBatchExtendTimer() {
-    if (this.batchExtendRunning) return
+    if (this.batchExtendRunning) { return }
     
     this.batchExtendRunning = true
     this.stopBatchExtend = false
 
     while (true) {
       try {
-        if (this.stopBatchExtend) break
+        if (this.stopBatchExtend) { break }
         
         await sleep(this.batchExtendInterval)
         
-        if (this.stopBatchExtend) break
+        if (this.stopBatchExtend) { break }
         
         await this.processBatchExtensions()
       }
@@ -68,7 +68,7 @@ class ACSQS {
   }
 
   async processBatchExtensions() {
-    if (this.visibilityManagement.size === 0) return
+    if (this.visibilityManagement.size === 0) { return }
 
     // Group messages by queue for batch processing
     const queueGroups = new Map()
@@ -76,7 +76,7 @@ class ACSQS {
 
     for (const [messageId, messageData] of this.visibilityManagement) {
       // Check if message still exists in tracking (might have been deleted)
-      if (!this.visibilityManagement.has(messageId)) continue
+      if (!this.visibilityManagement.has(messageId)) { continue }
       
       // Check if message needs extension
       if (now >= messageData.nextExtendTime) {
@@ -101,10 +101,10 @@ class ACSQS {
   }
 
   async extendVisibilityBatch(queueName, messages) {
-    if (messages.length === 0) return
+    if (messages.length === 0) { return }
 
     const config = _.find(this.availableLists, { name: queueName })
-    if (!config) return
+    if (!config) { return }
 
     const chunks = this.chunkMessages(messages)
     await this.processAllChunks(queueName, chunks, config)
@@ -129,7 +129,7 @@ class ACSQS {
 
   async processChunk(queueName, chunk, config, chunkNumber, totalChunks) {
     const validChunk = this.getValidChunk(chunk)
-    if (validChunk.length === 0) return
+    if (validChunk.length === 0) { return }
 
     const sqsParams = await this.buildSQSParams(validChunk, config)
     await this.executeChunkWithRetry(queueName, validChunk, sqsParams, config, chunkNumber, totalChunks)
@@ -219,7 +219,7 @@ class ACSQS {
 
     for (const messageData of validChunk) {
       // Check again if message still exists (might have been deleted during AWS call)
-      if (!this.visibilityManagement.has(messageData.messageId)) continue
+      if (!this.visibilityManagement.has(messageData.messageId)) { continue }
       
       if (successful.has(messageData.messageId)) {
         this.updateSuccessfulMessage(messageData, visibilityTimeout, queueName, config)
@@ -289,7 +289,7 @@ class ACSQS {
   }
 
   // Legacy method for backwards compatibility - now uses batch processing
-  async extendVisibility({ name, message, throwError }) {
+  async extendVisibility({ name, message }) {
     const config = _.find(this.availableLists, { name })
     if (!config) {
       this.logger.error('AWS | extendVisibility | configurationMissing | %s', name)
@@ -311,7 +311,7 @@ class ACSQS {
   }
 
   async getAllLists({ throwError = false } = {}) {
-    let response = []
+    const response = []
     for (const list of this.availableLists) {
       const attr = await this.getQueueAttributes({ name: list?.name, attributes: ['QueueArn'], throwError })
       response.push({ name: list?.name, value: attr?.Attributes?.QueueArn })
@@ -340,18 +340,18 @@ class ACSQS {
       throw new Error('configurationForListMissing')
     }
     const { queueUrl } = this.getQueueUrl(config)
-    let sqsParams = {
+    const sqsParams = {
       QueueUrl: queueUrl,
       AttributeNames: attributes
     }
-    if (config.debug) this.logger.debug('ACSQS | getQueueAttributes | Payload %j', sqsParams)
+    if (config.debug) { this.logger.debug('ACSQS | getQueueAttributes | Payload %j', sqsParams) }
     const command = new GetQueueAttributesCommand(sqsParams)
     try {
       return await this.sqs.send(command)
     }
     catch(e) {
       this.logger.error('ACSQS | getQueueAttributes | %s | %s', name, e?.message)
-      if (this.throwError || throwError) throw e
+      if (this.throwError || throwError) { throw e }
     }
   }
 
@@ -364,7 +364,7 @@ class ACSQS {
       }
 
       const { queueName } = this.getQueueUrl(config)
-        if (debug) this.logger.info('ACSQS | createQueues | %s | %s', list.name, queueName)
+        if (debug) { this.logger.info('ACSQS | createQueues | %s | %s', list.name, queueName) }
       const input = {
         QueueName: queueName
       }
@@ -377,19 +377,19 @@ class ACSQS {
         if (!_.isEmpty(_.get(config, 'attributes'))) {
           input.Attributes = config.attributes
         }
-        if (config?.fifo) input.Attributes = { ...input.Attributes, FifoQueue: 'true' }
-        if (config?.visibilityTimeout) input.Attributes = { ...input.Attributes, VisibilityTimeout: config.visibilityTimeout }
-        if (config?.delay) input.Attributes = { ...input.Attributes, DelaySeconds: config.delay }
+        if (config?.fifo) { input.Attributes = { ...input.Attributes, FifoQueue: 'true' } }
+        if (config?.visibilityTimeout) { input.Attributes = { ...input.Attributes, VisibilityTimeout: config.visibilityTimeout } }
+        if (config?.delay) { input.Attributes = { ...input.Attributes, DelaySeconds: config.delay } }
 
 
         const command = new CreateQueueCommand(input)
         try {
           await this.sqs.send(command)
-          if (debug) this.logger.info('ACSQS | createQueues | Created | %s | %s', list.name, queueName)
+          if (debug) { this.logger.info('ACSQS | createQueues | Created | %s | %s', list.name, queueName) }
         }
         catch(e) {
           this.logger.error('AWS | createQueue | %s | %s', list.name, e?.message)
-          if (this.throwError) throw e
+          if (this.throwError) { throw e }
         } 
       }
     }
@@ -422,11 +422,11 @@ class ACSQS {
       QueueUrl: queueUrl,
       MessageBody: message
     }
-    if (messageGroupId) _.set(sqsParams, 'MessageGroupId', messageGroupId)
-    if (deDuplicationId) _.set(sqsParams, 'MessageDeduplicationId', deDuplicationId)
-    if (delay) _.set(sqsParams, 'DelaySeconds', delay)
+    if (messageGroupId) { _.set(sqsParams, 'MessageGroupId', messageGroupId) }
+    if (deDuplicationId) { _.set(sqsParams, 'MessageDeduplicationId', deDuplicationId) }
+    if (delay) { _.set(sqsParams, 'DelaySeconds', delay) }
 
-    if (debug || config.debug) this.logger.debug('ACSQS | sendSQSMessage | Payload %j', sqsParams)
+    if (debug || config.debug) { this.logger.debug('ACSQS | sendSQSMessage | Payload %j', sqsParams) }
     const command = new SendMessageCommand(sqsParams)
     try {
       const response = await this.sqs.send(command)
@@ -434,7 +434,7 @@ class ACSQS {
     }
     catch(e) {
       this.logger.error('ACSQS | sendSQSMessage | %s | %s', name, e?.message)
-      if (this.throwError || throwError) throw e
+      if (this.throwError || throwError) { throw e }
     }
   }
 
@@ -498,7 +498,7 @@ class ACSQS {
       QueueUrl: queueUrl,
       Entries: entries
     }
-    if (debug || config.debug) this.logger.debug('ACSQS | sendSQSMessageBatch | Payload %j', sqsParams)
+    if (debug || config.debug) { this.logger.debug('ACSQS | sendSQSMessageBatch | Payload %j', sqsParams) }
     
     const command = new SendMessageBatchCommand(sqsParams)
     try {
@@ -507,7 +507,7 @@ class ACSQS {
     }
     catch(e) {
       this.logger.error('ACSQS | sendSQSMessageBatch | %s | %s', name, e?.message)
-      if (this.throwError || throwError) throw e
+      if (this.throwError || throwError) { throw e }
     }
   }
 
@@ -526,11 +526,11 @@ class ACSQS {
       VisibilityTimeout: _.get(config, 'visibilityTimeout', 30),
       WaitTimeSeconds: _.get(config, 'waitTime', 20)
     }
-    if (debug || config.debug) this.logger.debug('ACSQS | receiveSQSMessages | Payload %j', sqsParams)
+    if (debug || config.debug) { this.logger.debug('ACSQS | receiveSQSMessages | Payload %j', sqsParams) }
     const command = new ReceiveMessageCommand(sqsParams)
     try {
       const result = await this.sqs.send(command)
-      if (!_.size(result.Messages)) return
+      if (!_.size(result.Messages)) { return }
       
       const messages = await Promise.all(result.Messages.map(async (message) => {
         if (message.Body.startsWith('s3:')) {
@@ -540,7 +540,7 @@ class ACSQS {
             message.Body = objectData
             message.s3key = key
           }
-          catch(e) {
+          catch {
             this.logger.error('ACSQS | receiveSQSMessages | s3KeyInvalid | %s | %s', name, key)         
           }
         }
@@ -557,7 +557,7 @@ class ACSQS {
     }
     catch(e) {
       this.logger.error('ACSQS | receiveSQSMessage | %s | %s', name, e?.message)
-      if (this.throwError || throwError) throw e
+      if (this.throwError || throwError) { throw e }
     }
   }
 
@@ -591,7 +591,7 @@ class ACSQS {
       QueueUrl: queueUrl,
       Entries: entries
     }
-    if (debug || config.debug) this.logger.debug('ACSQS | deleteSQSMessages | Payload %j', sqsParams)
+    if (debug || config.debug) { this.logger.debug('ACSQS | deleteSQSMessages | Payload %j', sqsParams) }
     const command = new DeleteMessageBatchCommand(sqsParams)
     try {
       const response = await this.sqs.send(command)
@@ -610,7 +610,7 @@ class ACSQS {
     }
     catch(e) {
       this.logger.error('ACSQS | deleteSQSMessage | %s | %s', name, e?.message)
-      if (this.throwError || throwError) throw e
+      if (this.throwError || throwError) { throw e }
     }
   }
 
