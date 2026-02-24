@@ -1,4 +1,13 @@
 
+## [4.0.4](https://github.com/admiralcloud/ac-sqs/compare/v4.0.3..v4.0.4) (2026-02-24 19:19:56)
+
+
+### Bug Fix
+
+* **Misc:** Package updates | MP | [7f3ca8d2845db6ef4dd929b2817982300a9312a7](https://github.com/admiralcloud/ac-sqs/commit/7f3ca8d2845db6ef4dd929b2817982300a9312a7)    
+Package updates incl ESLint 9 -> 10 and lint fixes  
+Related issues:
+
 ## [4.0.3](https://github.com/admiralcloud/ac-sqs/compare/v4.0.2..v4.0.3) (2026-02-03 08:28:54)
 
 
