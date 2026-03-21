@@ -1,4 +1,13 @@
 
+## [4.0.5](https://github.com/admiralcloud/ac-sqs/compare/v4.0.4..v4.0.5) (2026-03-21 11:11:45)
+
+
+### Bug Fix
+
+* **Misc:** Package updates | MP | [5d39527151c36c166599414912d2b4266a53385c](https://github.com/admiralcloud/ac-sqs/commit/5d39527151c36c166599414912d2b4266a53385c)    
+Package updates  
+Related issues:
+
 ## [4.0.4](https://github.com/admiralcloud/ac-sqs/compare/v4.0.3..v4.0.4) (2026-02-24 19:19:56)
 
 
