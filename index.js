@@ -6,19 +6,19 @@ const { SQSClient, SendMessageCommand, SendMessageBatchCommand, ReceiveMessageCo
 const { S3Client, GetObjectCommand, PutObjectCommand, DeleteObjectsCommand } = require("@aws-sdk/client-s3")
 
 class ACSQS {
-  constructor({ region = 'eu-central-1', account, availableLists, useS3 = { enabled: true, bucket: undefined }, messageThreshold = 1000e3, logger = console, throwError = false, maxConcurrentMessages = 3000 }) {
+  constructor({ region = 'eu-central-1', account, availableLists, useS3 = { enabled: true, bucket: undefined }, messageThreshold = 1000e3, logger = console, throwError = false, maxConcurrentMessages = 3000, batchExtendInterval = 5000 }) {
     this.region = region
     this.account = account
     this.availableLists = availableLists
     this.logger = logger
     this.throwError = throwError
     this.maxConcurrentMessages = maxConcurrentMessages
-    
+
     // Improved visibility management
     this.visibilityManagement = new Map()
     this.batchExtendRunning = false
     this.stopBatchExtend = false
-    this.batchExtendInterval = 5000 // Check every 5 seconds
+    this.batchExtendInterval = batchExtendInterval
 
     const awsConfig = {
       region,
