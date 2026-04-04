@@ -1,6 +1,8 @@
 # AC SQS
 This tool is a wrapper for AWS SDK's SQS function. It includes handling of big SQS messages using S3.
 
+[![CodeQL](https://github.com/AdmiralCloud/ac-sqs/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/AdmiralCloud/ac-sqs/actions/workflows/github-code-scanning/codeql)
+
 ## Breaking changes - version 2
 This new class-based wrapper is not compatible with older versions. 
 
@@ -39,6 +41,9 @@ Array of AWS SQS lists that will be used by this function. Every item in the lis
 + localPrefix -> set your local prefix. See below for more info
 + debug -> if true, all SQS payloads for that list will be logged (level debug)
 + throwError -> if true, error will throw otherwise they will only be logged (default)
+
+**batchExtendInterval [optional]**
+Interval in milliseconds at which the visibility timeout extension loop runs. Defaults to 5000 (5 seconds). Can be set to a lower value in test environments for faster shutdown.
 
 Name should be the plain name of the list. Parameters like fifo or test (in test environment) or localPrefixes (for local development) should not be part of the list name. LocalPrefix can be used if multiple developers work on your project and you want to make sure they all work on their own SQS list without changing the name of all SQS lists in your main project.
 
@@ -116,20 +121,23 @@ https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_GetQue
 Call with all lists and let the function check if the queues exist. If not, the missing queue is created.
 
 # Test
-You can run tests using **yarn run test**.
+Run tests using **yarn test** or **npm test**.
 
-Preparations you have to make before running the tests:
+No AWS credentials or real infrastructure required. All SQS and S3 calls are stubbed using [sinon](https://sinonjs.org/), so tests run fully offline and complete in under 2 seconds.
 
-+ export the AWS profile to use for tests (if it is not your default profile) using  **export AWS_PROFILE=development**
-+ export the AWS account id using **export awsaccount=12345**
-+ create a SQS list named "test_acsqs"
-+ create a bucket and export the name using **export bucket=sqstest.admiralcloud.com**
-+ export the node test environment using **export NODE_ENV=test**
+```
+NODE_ENV=test yarn test
+```
 
-**ATTENTION**: Tests may fail when checking the SQS length. This is a by-design failure:
-"ApproximateNumberOfMessages metrics may not achieve consistency until at least 1 minute after the producers stop sending messages."
-
-See https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_GetQueueAttributes.html
+The test suite covers:
++ send, receive and delete (single and batch)
++ large message handling via S3 (PutObject / GetObject / DeleteObjects)
++ automatic visibility timeout extension (`processBatchExtensions`)
++ max extensions and invalid receipt handle cleanup
++ `createQueues` (existing and missing queues)
++ `extendVisibility` legacy method
++ `getVisibilityStats` breakdown
++ error handling at class and function level (`throwError`)
 
 # Misc
 ## Links

@@ -25,5 +25,4 @@ report.xml
 # local config
 ########################
 .jenkins.conf
-test.js
 .claude
