@@ -1,3 +1,30 @@
+## [4.0.6](https://github.com/admiralcloud/ac-sqs/compare/v4.0.5..v4.0.6) (2026-04-04 10:08:41)
+
+
+### Bug Fix
+
+
+* **App:** Make batchExtendInterval configurable | MP | [dda69e856f588882e4e293e62a0df474e483a46b](https://github.com/admiralcloud/ac-sqs/commit/dda69e856f588882e4e293e62a0df474e483a46b)    
+Make batchExtendInterval configurable but it still defaults to 5s - so there is no change  
+Related issues:
+* **App:** Package updates | MP | [254924ccbd447b18e230fb4c5f7455abf9fdc060](https://github.com/admiralcloud/ac-sqs/commit/254924ccbd447b18e230fb4c5f7455abf9fdc060)    
+Package updates  
+Related issues:
+* **App:** Package updates | MP | [161e2bc77e4eadc76614dd2c51dcc35dd08a611e](https://github.com/admiralcloud/ac-sqs/commit/161e2bc77e4eadc76614dd2c51dcc35dd08a611e)    
+Package updates  
+Related issues:
+### Tests
+
+
+* **App:** Added tests | MP | [01bb547ae0940ef4d41bc5b206e1f21888c2a87b](https://github.com/admiralcloud/ac-sqs/commit/01bb547ae0940ef4d41bc5b206e1f21888c2a87b)    
+Added tests  
+Related issues:
+### Documentation
+
+
+* **App:** Added badges | MP | [3806edd85fd4dbff240b1ceb33c4cb46dc2d57bd](https://github.com/admiralcloud/ac-sqs/commit/3806edd85fd4dbff240b1ceb33c4cb46dc2d57bd)    
+Added badges  
+Related issues:
 
 ## [4.0.5](https://github.com/admiralcloud/ac-sqs/compare/v4.0.4..v4.0.5) (2026-03-21 11:11:45)
 
