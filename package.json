@@ -15,7 +15,8 @@
     "chai": "^4.5.0",
     "eslint": "^10.2.0",
     "globals": "^17.4.0",
-    "mocha": "^11.7.5"
+    "mocha": "^11.7.5",
+    "sinon": "^21.0.3"
   },
   "scripts": {
     "test": "mocha --reporter spec"
