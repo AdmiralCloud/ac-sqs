@@ -1,7 +1,7 @@
 # AC SQS
 This tool is a wrapper for AWS SDK's SQS function. It includes handling of big SQS messages using S3.
 
-[![CodeQL](https://github.com/AdmiralCloud/ac-sqs/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/AdmiralCloud/ac-sqs/actions/workflows/github-code-scanning/codeql)
+[![Node.js CI](https://github.com/AdmiralCloud/ac-sqs/actions/workflows/node.js.yml/badge.svg)](https://github.com/AdmiralCloud/ac-sqs/actions/workflows/node.js.yml) [![CodeQL](https://github.com/AdmiralCloud/ac-sqs/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/AdmiralCloud/ac-sqs/actions/workflows/github-code-scanning/codeql)
 
 ## Breaking changes - version 2
 This new class-based wrapper is not compatible with older versions. 
