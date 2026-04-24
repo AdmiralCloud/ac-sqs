@@ -1,3 +1,11 @@
+## [4.0.9](https://github.com/admiralcloud/ac-sqs/compare/v4.0.8..v4.0.9) (2026-04-24 19:01:18)
+
+
+### Bug Fix
+
+
+* **App:** Package updates | Replaced uuid package with built-in function | MP | [b91ecb3be31a2c1f9296595e1fc36f55a26cd725](https://github.com/admiralcloud/ac-sqs/commit/b91ecb3be31a2c1f9296595e1fc36f55a26cd725)    
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
 ## [4.0.8](https://github.com/admiralcloud/ac-sqs/compare/v4.0.7..v4.0.8) (2026-04-24 18:57:41)
 
 
