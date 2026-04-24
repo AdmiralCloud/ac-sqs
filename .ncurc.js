@@ -1,5 +1,5 @@
 // List packages for minor updates
-const minorUpdatePackages = ['chai', 'uuid']
+const minorUpdatePackages = ['chai']
 
 module.exports = {
   target: packageName => {

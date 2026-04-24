@@ -1,5 +1,5 @@
 const _ = require('lodash')
-const { v4: uuidV4 } = require('uuid')
+const { randomUUID } = require('crypto')
 const { setTimeout: sleep } = require('timers/promises')
 
 const { SQSClient, SendMessageCommand, SendMessageBatchCommand, ReceiveMessageCommand, DeleteMessageBatchCommand, GetQueueAttributesCommand, ChangeMessageVisibilityBatchCommand, GetQueueUrlCommand, CreateQueueCommand } = require('@aws-sdk/client-sqs')
@@ -405,7 +405,7 @@ class ACSQS {
 
     if (this.useS3 && message.length > messageThreshold) {
       // store message in S3
-      const key = uuidV4()
+      const key = randomUUID()
       const input = {
         Bucket: this.bucket,
         Key: key,
@@ -451,7 +451,7 @@ class ACSQS {
         
         let processedBody = messageBody
         if (this.useS3 && messageBody.length > this.messageThreshold) {
-          const key = uuidV4()
+          const key = randomUUID()
           const input = {
             Bucket: this.bucket,
             Key: key,
