@@ -1,3 +1,11 @@
+## [4.0.15](https://github.com/admiralcloud/ac-sqs/compare/v4.0.14..v4.0.15) (2026-08-23 10:46:32)
+
+
+### Bug Fix
+
+
+* **App:** Package updates | MP | [e9b8d3f40f3143923dacc5e416f176fc80ce7788](https://github.com/admiralcloud/ac-sqs/commit/e9b8d3f40f3143923dacc5e416f176fc80ce7788)    
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
 ## [4.0.14](https://github.com/admiralcloud/ac-sqs/compare/v4.0.13..v4.0.14) (2026-08-01 13:30:01)
 
 
